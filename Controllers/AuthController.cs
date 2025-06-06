@@ -26,6 +26,7 @@ namespace VehicleServiceBook.Controllers
             _configuration = configuration;
             _mapper = mapper;
         }
+
        // [Authorize]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
@@ -59,3 +60,6 @@ namespace VehicleServiceBook.Controllers
         }
     }
 }
+
+
+
