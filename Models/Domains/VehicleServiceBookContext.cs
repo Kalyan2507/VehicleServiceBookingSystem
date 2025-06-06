@@ -31,7 +31,7 @@ public partial class VehicleServiceBookContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Data Source=LTIN617242\\SQLEXPRESS;Initial Catalog=VehicleServiceBook;Integrated Security=True;Trust Server Certificate=True");
+        => optionsBuilder.UseSqlServer("Server=LTIN617242\\SQLEXPRESS;Database=VehicleServiceBook;Integrated Security=True;TrustServerCertificate=True");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -51,6 +51,7 @@ public partial class VehicleServiceBookContext : DbContext
                 .HasForeignKey(d => d.ServiceCenterId)
                 .HasConstraintName("FK__Booking__Service__5AEE82B9");
 
+            entity.HasOne(d => d.Registration).WithMany(p => p.Bookings)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("FK__Booking__UserId__59063A47");
 
@@ -107,7 +108,7 @@ public partial class VehicleServiceBookContext : DbContext
             entity.Property(e => e.Address).HasMaxLength(200);
             entity.Property(e => e.Email).HasMaxLength(100);
             entity.Property(e => e.Name).HasMaxLength(100);
-            entity.Property(e => e.PasswordHash).HasMaxLength(50);
+            entity.Property(e => e.PasswordHash).HasMaxLength(200);
             entity.Property(e => e.Phone).HasMaxLength(10);
             entity.Property(e => e.Role).HasMaxLength(20);
         });

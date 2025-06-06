@@ -8,6 +8,7 @@
 
         public DateTime Date { get; set; }
 
+        public int? ServiceTypeId { get; set; }
         public string TimeSlot { get; set; } = null!;
 
         public string? Status { get; set; }

@@ -20,14 +20,16 @@ namespace VehicleServiceBook.Controllers
         private readonly IUserRepository _userRepository;
         private readonly IServiceCenterRepository _serviceCenterRepository;
         private readonly IMapper _mapper;
-
+        public MechanicController(VehicleServiceBookContext vehicleServiceBookContext, IMechanicRepository repo, IServiceCenterRepository serviceCenterRepository, IMapper mapper, IUserRepository userRepository)
         {
             _vehicleServiceBookContext = vehicleServiceBookContext;
             _repo = repo;
             _userRepository = userRepository;
             _serviceCenterRepository = serviceCenterRepository;
             _mapper = mapper;
+
         }
+        
         //[HttpGet]
         //public async Task<IActionResult>GetAll()
         //{
@@ -56,6 +58,22 @@ namespace VehicleServiceBook.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
+            var email = User.FindFirstValue(ClaimTypes.Email);
+            var user = await _userRepository.GetUserByEmailAsync(email);
+            if (user == null || user.Role != "ServiceCenter")
+                return Unauthorized();
+            var serviceCenter = await _serviceCenterRepository.GetByUserIdAsync(user.UserId);
+            if (serviceCenter == null)
+                return Forbid("Service Center not found.");
+
+            var mechanic = await _repo.GetByIdAsync(id);
+            if (mechanic == null)
+                return NotFound("Mechanic not found");
+            if (mechanic.ServiceCenterId != serviceCenter.ServiceCenterId)
+                return Forbid("You are not authorized to access this mechanic.");
+
+            var dto = _mapper.Map<MechanicDto>(mechanic);
+            return Ok(dto);
         }
 
         [HttpPost]

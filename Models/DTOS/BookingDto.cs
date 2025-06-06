@@ -8,6 +8,7 @@
         public string? Status { get; set; }
         public int VehicleId {  get; set; }
 
+        public int? ServiceTypeId { get; set; }
         public int? ServiceCenterId { get; set; }
 
         

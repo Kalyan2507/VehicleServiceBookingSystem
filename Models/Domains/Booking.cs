@@ -13,6 +13,8 @@ public partial class Booking
 
     public int? ServiceCenterId { get; set; }
 
+    public int? ServiceTypeId { get; set; }
+
     public DateTime? Date { get; set; }
 
     public string? TimeSlot { get; set; }
@@ -23,7 +25,9 @@ public partial class Booking
 
     public virtual ServiceCenter? ServiceCenter { get; set; }
 
+    public virtual Registration? Registration { get; set; }
+
+    public virtual ServiceType? ServiceType { get; set; }
 
     public virtual Vehicle? Vehicle { get; set; }
-    public virtual ServiceType? ServiceType { get; set; }
 }
