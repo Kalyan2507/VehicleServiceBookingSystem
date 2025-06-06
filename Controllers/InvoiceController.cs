@@ -76,7 +76,7 @@ namespace VehicleServiceBook.Controllers
                 BookingId = dto.BookingId,
                 ServiceTypeId = dto.ServiceTypeId,
                 TotalAmount = (double?)serviceType.Price,
-                PaymentStatus = "Pending"
+                PaymentStatus = "Paid"
             };
 
             _context.Invoices.Add(invoice);

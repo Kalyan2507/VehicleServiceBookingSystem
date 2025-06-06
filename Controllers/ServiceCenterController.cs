@@ -87,35 +87,36 @@ namespace VehicleServiceBook.Controllers
 
             return Ok(appointments);
         }
-        [Authorize(Roles = "ServiceCenter")]
-        [HttpPut("update-payment-status/{invoiceId}")]
-        public async Task<IActionResult> UpdatePaymentStatus(int invoiceId, [FromBody] UpdatePaymentStatusDto dto)
-        {
-            var email = User.FindFirstValue(ClaimTypes.Email);
-            var user = await _userRepository.GetUserByEmailAsync(email);
-            if (user == null || user.Role != "ServiceCenter")
-                return Unauthorized();
 
-            var serviceCenter = await _serviceCenterRepo.GetByUserIdAsync(user.UserId);
-            if (serviceCenter == null)
-                return NotFound("Service center not found");
+        //[Authorize(Roles = "ServiceCenter")]
+        //[HttpPut("update-payment-status/{invoiceId}")]
+        //public async Task<IActionResult> UpdatePaymentStatus(int invoiceId, [FromBody] UpdatePaymentStatusDto dto)
+        //{
+        //    var email = User.FindFirstValue(ClaimTypes.Email);
+        //    var user = await _userRepository.GetUserByEmailAsync(email);
+        //    if (user == null || user.Role != "ServiceCenter")
+        //        return Unauthorized();
 
-            var invoice = await _context.Invoices
-                .Include(i => i.Booking)
-                .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
+        //    var serviceCenter = await _serviceCenterRepo.GetByUserIdAsync(user.UserId);
+        //    if (serviceCenter == null)
+        //        return NotFound("Service center not found");
 
-            if (invoice == null)
-                return NotFound("Invoice not found");
+        //    var invoice = await _context.Invoices
+        //        .Include(i => i.Booking)
+        //        .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
 
-            if (invoice.Booking.ServiceCenterId != serviceCenter.ServiceCenterId)
-                return Forbid("You are not authorized to update this invoice");
+        //    if (invoice == null)
+        //        return NotFound("Invoice not found");
 
-            invoice.PaymentStatus = dto.PaymentStatus;
-            _context.Invoices.Update(invoice);
-            await _context.SaveChangesAsync();
+        //    if (invoice.Booking.ServiceCenterId != serviceCenter.ServiceCenterId)
+        //        return Forbid("You are not authorized to update this invoice");
 
-            return NoContent();
-        }
+        //    invoice.PaymentStatus = dto.PaymentStatus;
+        //    _context.Invoices.Update(invoice);
+        //    await _context.SaveChangesAsync();
+
+        //    return NoContent();
+        //}
 
     }
 }
