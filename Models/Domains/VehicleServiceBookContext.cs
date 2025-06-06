@@ -51,7 +51,6 @@ public partial class VehicleServiceBookContext : DbContext
                 .HasForeignKey(d => d.ServiceCenterId)
                 .HasConstraintName("FK__Booking__Service__5AEE82B9");
 
-            entity.HasOne(d => d.Registration).WithMany(p => p.Bookings)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("FK__Booking__UserId__59063A47");
 

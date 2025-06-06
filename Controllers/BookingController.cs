@@ -20,7 +20,6 @@ namespace VehicleServiceBook.Controllers
         private readonly IUserRepository _userRepo;
         private readonly IMapper _mapper;
 
-        public BookingController(VehicleServiceBookContext vehicleServiceBookContext,IBookingRepository repo,IUserRepository userRepo,IMapper mapper)
         {
             _vehicleServiceBookContext = vehicleServiceBookContext;
             _repo = repo;
@@ -58,16 +57,6 @@ namespace VehicleServiceBook.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var email = User.FindFirstValue(ClaimTypes.Email);
-            if (email == null)
-                return Unauthorized("data not there");
-            var user = await _userRepo.GetUserByEmailAsync(email);
-            if (user == null) return Unauthorized();
-            var booking = await _vehicleServiceBookContext.Bookings.FirstOrDefaultAsync(b => b.Bookingid == id && b.UserId == user.UserId);
-            if (booking == null)
-                return NotFound($"Booking with ID {id} not found");
-            var dto = _mapper.Map<BookingDto>(booking);
-            return Ok(dto);
         }
 
         [HttpPost]

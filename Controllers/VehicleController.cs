@@ -39,6 +39,7 @@ namespace VehicleServiceBook.Controllers
             return Ok(_mapper.Map<IEnumerable<VehicleDto>>(vehicles));
         }
 
+        [Authorize(Roles = "User")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -49,8 +50,6 @@ namespace VehicleServiceBook.Controllers
             if (user == null || user.Role != "User")
                 return Unauthorized();
             var vehicle = await _repo.GetByIdAsync(id);
-            if (vehicle == null || vehicle.UserId != user.UserId)
-                return Forbid("You are not authorized to access this vehicle.");
             return Ok(_mapper.Map<VehicleDto>(vehicle));
         }
 

@@ -23,7 +23,6 @@ public partial class Booking
 
     public virtual ServiceCenter? ServiceCenter { get; set; }
 
-    public virtual Registration? Registration { get; set; }
 
     public virtual Vehicle? Vehicle { get; set; }
     public virtual ServiceType? ServiceType { get; set; }
