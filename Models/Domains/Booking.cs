@@ -5,6 +5,8 @@ namespace VehicleServiceBook.Models.Domains;
 
 public partial class Booking
 {
+    public virtual Registration Registration { get; set; }
+
     public int Bookingid { get; set; }
 
     public int? UserId { get; set; }

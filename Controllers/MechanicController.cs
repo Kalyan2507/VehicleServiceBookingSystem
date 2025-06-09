@@ -21,6 +21,7 @@ namespace VehicleServiceBook.Controllers
         private readonly IServiceCenterRepository _serviceCenterRepository;
         private readonly IMapper _mapper;
 
+        public MechanicController(VehicleServiceBookContext vehicleServiceBookContext, IMechanicRepository repo, IUserRepository userRepository, IServiceCenterRepository serviceCenterRepository, IMapper mapper)
         {
             _vehicleServiceBookContext = vehicleServiceBookContext;
             _repo = repo;
@@ -28,6 +29,7 @@ namespace VehicleServiceBook.Controllers
             _serviceCenterRepository = serviceCenterRepository;
             _mapper = mapper;
         }
+       
         //[HttpGet]
         //public async Task<IActionResult>GetAll()
         //{
@@ -56,6 +58,14 @@ namespace VehicleServiceBook.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
+            var mechanic = await _repo.GetByIdAsync(id);
+
+            if (mechanic == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(_mapper.Map<MechanicDto>(mechanic));
         }
 
         [HttpPost]

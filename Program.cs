@@ -10,6 +10,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using VehicleServiceBook.Models.Domains;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Diagnostics;
+using VehicleServiceBook.Models.DTOS;
+using VehicleServiceBook.Models.Exceptions;
 
 
 
@@ -78,6 +81,39 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 builder.Services.AddAuthorization();
 var app = builder.Build();
+
+
+// Global Exception Handling Middleware
+
+app.UseExceptionHandler(appError =>
+{
+    appError.Run(async context =>
+    {
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        var hostEnvironment = context.RequestServices.GetRequiredService<IHostEnvironment>(); // <--- Add this line
+        var contextFeature = context.Features.Get<IExceptionHandlerFeature>();
+
+        if (contextFeature != null)
+        {
+            logger.LogError(contextFeature.Error, "Global exception caught");
+
+            context.Response.ContentType = "application/json";
+            context.Response.StatusCode = contextFeature.Error switch
+            {
+                NotFoundException => 404,
+                BadRequestException => 400,
+                UnauthorizedException => 401,
+                _ => 500
+            };
+
+            await context.Response.WriteAsync(new ErrorResponse(
+                context.Response.StatusCode,
+                contextFeature.Error.Message,
+                hostEnvironment.IsDevelopment() ? contextFeature.Error.StackTrace : null // <--- Use hostEnvironment here
+            ).ToString());
+        }
+    });
+});
 
 
 // Configure the HTTP request pipeline.

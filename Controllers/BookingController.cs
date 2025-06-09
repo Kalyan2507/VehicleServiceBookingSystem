@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VehicleServiceBook.Models.Domains;
 using VehicleServiceBook.Models.DTOS;
+using VehicleServiceBook.Models.Exceptions;
 using VehicleServiceBook.Repositories;
 
 namespace VehicleServiceBook.Controllers
@@ -20,12 +21,14 @@ namespace VehicleServiceBook.Controllers
         private readonly IUserRepository _userRepo;
         private readonly IMapper _mapper;
 
+        public BookingController(VehicleServiceBookContext vehicleServiceBookContext, IBookingRepository repo, IUserRepository userRepo, IMapper mapper)
         {
             _vehicleServiceBookContext = vehicleServiceBookContext;
             _repo = repo;
             _userRepo = userRepo;
             _mapper = mapper;
         }
+ 
         private async Task<int?> GetUserIdFromToken()
         {
             var email = User.FindFirstValue(ClaimTypes.Email);
@@ -57,6 +60,13 @@ namespace VehicleServiceBook.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
+            var booking = await _repo.GetByIdAsync(id);
+            if (booking == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(_mapper.Map<BookingDto>(booking));
         }
 
         [HttpPost]
@@ -101,6 +111,30 @@ namespace VehicleServiceBook.Controllers
             await _repo.DeleteAsync(id);
             await _repo.SaveChangesAsync();
             return NoContent();
+        }
+
+        // Test in a controller
+
+        [HttpGet("test-exceptions")]
+
+        public IActionResult TestExceptions(int type)
+
+        {
+
+            return type switch
+
+            {
+
+                1 => throw new NotFoundException("Vehicle", 999),
+
+                2 => throw new BadRequestException("Invalid date format"),
+
+                3 => throw new UnauthorizedException("access bookings"),
+
+                _ => throw new Exception("Unhandled exception")
+
+            };
+
         }
     }
 }
