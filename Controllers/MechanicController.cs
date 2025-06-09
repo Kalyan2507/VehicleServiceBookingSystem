@@ -29,14 +29,13 @@ namespace VehicleServiceBook.Controllers
             _mapper = mapper;
 
         }
-        
+
         //[HttpGet]
         //public async Task<IActionResult>GetAll()
         //{
         //    var mechanics=await _repo.GetAllAsync();
         //    return Ok(_mapper.Map<IEnumerable<MechanicDto>>(mechanics));
         //}
-
         [HttpGet("my-mechanics")]
         public async Task<IActionResult> GetByLoggedInServiceCenter()
         {
@@ -54,7 +53,6 @@ namespace VehicleServiceBook.Controllers
 
             return Ok(_mapper.Map<IEnumerable<MechanicDto>>(assigned));
         }
-
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -75,39 +73,64 @@ namespace VehicleServiceBook.Controllers
             var dto = _mapper.Map<MechanicDto>(mechanic);
             return Ok(dto);
         }
-
         [HttpPost]
-        public async Task<IActionResult>Create(CreateMechanicDto dto)
+        public async Task<IActionResult> Create([FromBody] CreateMechanicDto dto)
         {
-            var mech=_mapper.Map<Mechanic>(dto);
-            await _repo.AddAsync(mech);
-            await _repo.SaveChangesAsync();
-            return Ok(_mapper.Map<MechanicDto>(mech));
-        }
+            var email = User.FindFirstValue(ClaimTypes.Email);
+            var user = await _userRepository.GetUserByEmailAsync(email);
+            var serviceCenter = await _serviceCenterRepository.GetByUserIdAsync(user.UserId);
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult>Update(int id,CreateMechanicDto dto)
-        {
-            var existing = await _repo.GetByIdAsync(id);
-            if(existing == null)
-                return NotFound();
-            existing.MechanicName=dto.MechanicName;
-            existing.Expertise=dto.Expertise;
-            existing.ServiceCenterId=dto.ServiceCenterId;
-            await _repo.UpdateAsync(existing);
+            if (serviceCenter == null)
+                return BadRequest("Service center not found for the logged-in user.");
+
+
+            var mechanic = _mapper.Map<Mechanic>(dto);
+            mechanic.ServiceCenterId = serviceCenter.ServiceCenterId;
+
+            await _repo.AddAsync(mechanic);
             await _repo.SaveChangesAsync();
-            return Ok("Mechanic Updated Successfully");
+
+            return Ok(_mapper.Map<MechanicDto>(mechanic));
+        }
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] CreateMechanicDto dto)
+        {
+            var email = User.FindFirstValue(ClaimTypes.Email);
+            var user = await _userRepository.GetUserByEmailAsync(email);
+            var serviceCenter = await _serviceCenterRepository.GetByUserIdAsync(user.UserId);
+
+            if (serviceCenter == null)
+                return Unauthorized("Service center not found.");
+
+
+            var existingMechanic = await _repo.GetByIdAsync(id);
+            if (existingMechanic == null)
+                return NotFound("Mechanic not found.");
+
+
+            if (existingMechanic.ServiceCenterId != serviceCenter.ServiceCenterId)
+                return Forbid("You are not allowed to update this mechanic.");
+
+
+            existingMechanic.MechanicName = dto.MechanicName;
+            existingMechanic.Expertise = dto.Expertise;
+
+            await _repo.UpdateAsync(existingMechanic);
+            await _repo.SaveChangesAsync();
+
+            return Ok(_mapper.Map<MechanicDto>(existingMechanic));
         }
         [HttpDelete("{id}")]
-        public async Task<IActionResult>Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var mechanic=await _repo.GetByIdAsync(id);
-            if(mechanic == null)
+            var mechanic = await _repo.GetByIdAsync(id);
+            if (mechanic == null)
                 return NotFound($"No Mechanic found with Id {id}");
             await _repo.DeleteAsync(id);
             await _repo.SaveChangesAsync();
             return Ok("Deleted Successfully");
         }
-        
+
+
     }
 }

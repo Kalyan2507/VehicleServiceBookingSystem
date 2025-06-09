@@ -4,6 +4,7 @@
     {
         public string RegistrationNumber { get; set; }
         public string CustomerName { get; set; }
+        public string MechanicName { get; set; }
         public string Description { get; set; }
         public DateTime Date { get; set; }
         public string TimeSlot { get; set; }

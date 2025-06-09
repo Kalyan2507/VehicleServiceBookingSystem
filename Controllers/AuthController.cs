@@ -32,7 +32,7 @@ namespace VehicleServiceBook.Controllers
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
             var user = await _userRepository.GetUserByEmailAsync(dto.Email);
-            if (user == null ||!BCrypt.Net.BCrypt.Verify(dto.PasswordHash, user.PasswordHash))
+            if (user == null ||!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
                 return Unauthorized("Invalid email or password");
 
             // Generate JWT

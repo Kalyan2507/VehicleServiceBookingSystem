@@ -45,45 +45,45 @@ namespace VehicleServiceBook.Controllers
 
             return Ok(_mapper.Map<InvoiceDto>(invoice));
         }
-        [Authorize(Roles = "ServiceCenter")]
+        [Authorize(Roles = "User")]
         [HttpPost]
         public async Task<IActionResult> CreateInvoice([FromBody] CreateInvoiceDto dto)
         {
-            // 1. Validate Booking exists
-            var booking = await _context.Bookings
-                .Include(b => b.ServiceCenter)
-                .FirstOrDefaultAsync(b => b.Bookingid == dto.BookingId);
-
-            if (booking == null)
-                return NotFound("Booking not found");
-
-            // 2. Check ServiceCenter is the owner of this booking
             var email = User.FindFirstValue(ClaimTypes.Email);
             var user = await _userRepository.GetUserByEmailAsync(email);
-            var serviceCenter = await _serviceCenterRepository.GetByUserIdAsync(user.UserId);
+            if (user == null)
+                return Unauthorized();
 
-            if (booking.ServiceCenterId != serviceCenter.ServiceCenterId)
-                return Forbid("You cannot invoice for a booking you don't own");
+            var booking = await _context.Bookings
+                .FirstOrDefaultAsync(b => b.Bookingid == dto.BookingId && b.UserId == user.UserId);
 
-            // 3. Get the ServiceType to calculate price
-            var serviceType = await _context.ServiceTypes.FirstOrDefaultAsync(st => st.ServiceTypeId == dto.ServiceTypeId);
+            if (booking == null)
+                return Forbid("You are not authorized to create an invoice for this booking.");
+
+            var serviceType = await _context.ServiceTypes
+                .FirstOrDefaultAsync(st => st.ServiceTypeId == booking.ServiceTypeId);
+
             if (serviceType == null)
-                return BadRequest("Invalid service type");
+                return BadRequest("Invalid ServiceTypeId.");
 
-            // 4. Create and save invoice
             var invoice = new Invoice
             {
                 BookingId = dto.BookingId,
-                ServiceTypeId = dto.ServiceTypeId,
+                ServiceTypeId = booking.ServiceTypeId,
                 TotalAmount = (double?)serviceType.Price,
                 PaymentStatus = "Paid"
             };
 
             _context.Invoices.Add(invoice);
             await _context.SaveChangesAsync();
-            var result = _mapper.Map<InvoiceDto>(invoice);
 
-            return Ok(result); // or map to InvoiceDto
+            return Ok(new
+            {
+                InvoiceId = invoice.InvoiceId,
+                BookingId = invoice.BookingId,
+                TotalAmount = invoice.TotalAmount,
+                PaymentStatus = invoice.PaymentStatus
+            });
         }
     }
 }

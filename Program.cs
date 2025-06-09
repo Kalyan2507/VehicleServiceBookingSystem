@@ -13,18 +13,13 @@ using Microsoft.OpenApi.Models;
 using VehicleServiceBook.Middleware;
 
 
-
-
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "Vehicle API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Vehicle API", Version = "v1" });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         In = ParameterLocation.Header,
@@ -48,6 +43,7 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
+
 builder.Services.AddDbContext<VehicleServiceBookContext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -78,24 +74,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddAuthorization();
+
+
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionMiddleware>();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    app.UseDeveloperExceptionPage();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
 app.UseRouting();
 
-
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 
 app.MapControllers();
 

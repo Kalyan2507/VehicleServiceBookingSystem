@@ -17,7 +17,7 @@ public partial class Vehicle
 
     public string? RegistrationNumber { get; set; }
 
-    public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+    public virtual ICollection<Booking> Bookings { get; set; } 
 
     public virtual Registration? User { get; set; }
 }

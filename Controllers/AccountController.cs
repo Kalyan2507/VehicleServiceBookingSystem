@@ -6,7 +6,8 @@ using VehicleServiceBook.Repositories;
 using VehicleServiceBook.Models.Domains;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
-using VehicleServiceBook.Middleware; // Add this using for CustomValidationException
+using VehicleServiceBook.Middleware;
+using Microsoft.EntityFrameworkCore; // Add this using for CustomValidationException
 
 namespace VehicleServiceBook.Controllers
 {
@@ -14,12 +15,14 @@ namespace VehicleServiceBook.Controllers
     [ApiController]
     public class AccountController : ControllerBase
     {
+        private readonly VehicleServiceBookContext _context;
         private readonly IUserRepository _userRepository;
         private readonly IServiceCenterRepository _serviceCenterRepository;
         private readonly IMapper _mapper;
 
-        public AccountController(IUserRepository userRepo, IServiceCenterRepository scRepo, IMapper mapper)
+        public AccountController(VehicleServiceBookContext context,IUserRepository userRepo, IServiceCenterRepository scRepo, IMapper mapper)
         {
+            _context = context;
             _userRepository = userRepo;
             _serviceCenterRepository = scRepo;
             _mapper = mapper;
@@ -28,23 +31,10 @@ namespace VehicleServiceBook.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterAccountDto dto)
         {
-            // 1. Model State Validation (remains here, as it's input validation)
             if (!ModelState.IsValid)
-            {
-                // Returning BadRequest(ModelState) here is standard for validation errors.
-                // This doesn't go through the ExceptionMiddleware directly, but is a 400 Bad Request.
                 return BadRequest(ModelState);
-            }
-
-            // 2. Business Rule Validation (before database interaction)
             if (dto.Role != "User" && dto.Role != "ServiceCenter")
-            {
-                // For simple business rule violations like this, you can return BadRequest.
-                // Alternatively, you could throw a CustomValidationException here too
-                // if you prefer all "bad request" errors to flow through the middleware.
-                // For instance: throw new CustomValidationException("Invalid role", 400);
                 return BadRequest("Invalid role");
-            }
 
             var hashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.Password);
 
@@ -58,13 +48,9 @@ namespace VehicleServiceBook.Controllers
                 Role = dto.Role
             };
 
-            // No try-catch block here for DbUpdateException!
-            // We expect _userRepository.SaveChangeAsync() to throw CustomValidationException
-            // if a unique key violation occurs, which will then be caught by the global middleware.
             await _userRepository.AddUserAsync(registration);
-            await _userRepository.SaveChangeAsync(); // This is where the CustomValidationException will be thrown if email is duplicate
+            await _userRepository.SaveChangeAsync();
 
-            // If it's a service center, add ServiceCenter details too
             if (dto.Role == "ServiceCenter")
             {
                 var serviceCenter = new ServiceCenter
@@ -76,33 +62,77 @@ namespace VehicleServiceBook.Controllers
                 };
 
                 await _serviceCenterRepository.AddAsync(serviceCenter);
-                // Assume SaveChangesAsync on serviceCenterRepository also handles potential
-                // unique constraints for service centers and throws CustomValidationException if needed.
                 await _serviceCenterRepository.SaveChangesAsync();
             }
 
-            // If execution reaches here, everything was successful.
             return Ok("Registration successful");
         }
-
         [Authorize]
-        [HttpGet("me")]
-        public async Task<IActionResult> GetMyAccount()
+        [HttpGet("Profile")]
+        public async Task<IActionResult> GetMe()
         {
             var email = User.FindFirstValue(ClaimTypes.Email);
             var user = await _userRepository.GetUserByEmailAsync(email);
 
             if (user == null)
+                return Unauthorized();
+
+            if (user.Role == "ServiceCenter")
             {
-                // It's good to return NotFound for resource not found.
-                // Alternatively, you could throw a specific NotFoundException (a custom exception)
-                // and let the middleware handle it for a consistent API response structure,
-                // but for simple NotFound cases, returning NotFound() is perfectly acceptable.
-                return NotFound("User not found");
+                var serviceCenter = await _serviceCenterRepository.GetByUserIdAsync(user.UserId);
+                if (serviceCenter == null)
+                    return NotFound("Service center info not found.");
+
+                var dto = new ProfileDto
+                {
+                    UserId = user.UserId,
+                    Name = user.Name,
+                    Email = user.Email,
+                    Phone = user.Phone,
+
+                    ServiceCenterId = serviceCenter.ServiceCenterId,
+                    ServiceCenterName = serviceCenter.ServiceCenterName,
+                    ServiceCenterLocation = serviceCenter.ServiceCenterLocation,
+                    ServiceCenterContact = serviceCenter.ServiceCenterContact
+                };
+
+                return Ok(dto);
             }
 
-            var userDto = _mapper.Map<UserDto>(user);
-            return Ok(userDto);
+            var dtoUser = _mapper.Map<UserDto>(user);
+            return Ok(dtoUser);
+        }
+        [Authorize]
+        [HttpPut("Profile")]
+        public async Task<IActionResult> UpdateMe([FromBody] UpdateAccountDto dto)
+        {
+            var email = User.FindFirstValue(ClaimTypes.Email);
+            var user = await _userRepository.GetUserByEmailAsync(email);
+
+            if (user == null)
+                return Unauthorized();
+
+            user.Name = dto.Name;
+            user.Phone = dto.Phone;
+            user.Address = dto.Address;
+            _context.Registrations.Update(user);
+
+
+            if (user.Role == "ServiceCenter")
+            {
+                var serviceCenter = await _context.ServiceCenters.FirstOrDefaultAsync(sc => sc.UserId == user.UserId);
+                if (serviceCenter == null)
+                    return NotFound("Service center data not found.");
+
+                serviceCenter.ServiceCenterName = dto.ServiceCenterName;
+                serviceCenter.ServiceCenterLocation = dto.ServiceCenterLocation;
+                serviceCenter.ServiceCenterContact = dto.ServiceCenterContact;
+
+                _context.ServiceCenters.Update(serviceCenter);
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok();
         }
     }
 }
