@@ -20,7 +20,7 @@ namespace VehicleServiceBook.Controllers
         private readonly IServiceCenterRepository _serviceCenterRepository;
         private readonly IMapper _mapper;
 
-        public AccountController(VehicleServiceBookContext context,IUserRepository userRepo, IServiceCenterRepository scRepo, IMapper mapper)
+        public AccountController(VehicleServiceBookContext context, IUserRepository userRepo, IServiceCenterRepository scRepo, IMapper mapper)
         {
             _context = context;
             _userRepository = userRepo;
@@ -115,6 +115,7 @@ namespace VehicleServiceBook.Controllers
             user.Name = dto.Name;
             user.Phone = dto.Phone;
             user.Address = dto.Address;
+
             _context.Registrations.Update(user);
 
 

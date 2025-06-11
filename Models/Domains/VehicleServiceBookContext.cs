@@ -125,7 +125,7 @@ public partial class VehicleServiceBookContext : DbContext
 
         });
 
-        // Vehicle1
+        // Vehicle
 
         modelBuilder.Entity<Vehicle>(entity =>
 
@@ -230,6 +230,9 @@ public partial class VehicleServiceBookContext : DbContext
                   .HasMaxLength(40)
 
                   .IsUnicode(false);
+            entity.Property(e => e.Date)
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("getdate()");
 
             entity.Property(e => e.TotalAmount)
 

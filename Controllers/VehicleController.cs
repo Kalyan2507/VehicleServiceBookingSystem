@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using VehicleServiceBook.Models.Domains;
 using VehicleServiceBook.Models.DTOS;
 using VehicleServiceBook.Repositories;
+using VehicleServiceBook.Services;
 
 namespace VehicleServiceBook.Controllers
 {
@@ -14,85 +15,81 @@ namespace VehicleServiceBook.Controllers
     [ApiController]
     public class VehicleController : ControllerBase
     {
-        private readonly IVehicleRepository _repo;
-        private readonly IUserRepository _userRepo;
-        private readonly IMapper _mapper;
+        private readonly IVehicleService _service;
 
-        public VehicleController(IVehicleRepository repo, IUserRepository userRepo, IMapper mapper)
+        public VehicleController(IVehicleService service)
+
         {
-            _repo = repo;
-            _userRepo = userRepo;
-            _mapper = mapper;
+
+            _service = service;
+
         }
-        private async Task<int?> GetUserIdFromToken()
-        {
-            var email = User.FindFirstValue(ClaimTypes.Email);
-            var user = await _userRepo.GetUserByEmailAsync(email);
-            return user?.UserId;
-        }
+
+        private string GetEmail() => User.FindFirstValue(ClaimTypes.Email);
 
         [HttpGet]
+
         public async Task<IActionResult> GetAll()
+
         {
-            var userId = await GetUserIdFromToken();
-            var vehicles = await _repo.GetAllByUserIdAsync(userId.Value);
-            return Ok(_mapper.Map<IEnumerable<VehicleDto>>(vehicles));
+
+            var result = await _service.GetAllAsync(GetEmail());
+
+            return Ok(result);
+
         }
 
-        [Authorize(Roles = "User")]
         [HttpGet("{id}")]
+
         public async Task<IActionResult> GetById(int id)
+
         {
-            var email = User.FindFirstValue(ClaimTypes.Email);
-            if (email == null)
-                return Unauthorized("data not there");
-            var user = await _userRepo.GetUserByEmailAsync(email);
-            if (user == null || user.Role != "User")
-                return Unauthorized();
-            var vehicle = await _repo.GetByIdAsync(id);
-            if (vehicle == null || vehicle.UserId != user.UserId)
+
+            var vehicle = await _service.GetByIdAsync(id, GetEmail());
+
+            if (vehicle == null)
+
                 return Forbid("You are not authorized to access this vehicle.");
-            return Ok(_mapper.Map<VehicleDto>(vehicle));
+
+            return Ok(vehicle);
+
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(CreateVehicleDto dto)
-        {
-            var userId = await GetUserIdFromToken();
-            var vehicle = _mapper.Map<Vehicle>(dto);
-            vehicle.UserId = userId.Value;
 
-            await _repo.AddAsync(vehicle);
-            await _repo.SaveChangesAsync();
-            return Ok(_mapper.Map<VehicleDto>(vehicle));
+        public async Task<IActionResult> Create(CreateVehicleDto dto)
+
+        {
+
+            var result = await _service.CreateAsync(dto, GetEmail());
+
+            return Ok(result);
+
         }
 
-
         [HttpPut("{id}")]
+
         public async Task<IActionResult> Update(int id, CreateVehicleDto dto)
+
         {
-            var vehicle = await _repo.GetByIdAsync(id);
-            if (vehicle == null) return NotFound();
 
-            vehicle.Make = dto.Make;
-            vehicle.Model = dto.Model;
-            vehicle.Year = dto.Year;
-            vehicle.RegistrationNumber = dto.RegistrationNumber;
+            var message = await _service.UpdateAsync(id, dto, GetEmail());
 
-            await _repo.UpdateAsync(vehicle);
-            await _repo.SaveChangesAsync();
-            return NoContent();
+            return message == null ? NotFound("Vehicle not found or access denied.") : Ok(message);
+
         }
 
         [HttpDelete("{id}")]
+
         public async Task<IActionResult> Delete(int id)
+
         {
-            var vehicle=await _repo.GetByIdAsync(id);
-            if (vehicle == null) 
-                return NotFound($"No Vehicle found with Id {id}");
-            await _repo.DeleteAsync(id);
-            await _repo.SaveChangesAsync();
-            return NoContent();
+
+            var message = await _service.DeleteAsync(id, GetEmail());
+
+            return message == null ? NotFound("Vehicle not found or access denied.") : Ok(message);
+
         }
+
     }
 }

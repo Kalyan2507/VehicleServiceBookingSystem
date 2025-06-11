@@ -16,7 +16,7 @@ namespace VehicleServiceBook.Controllers
         private readonly IServiceTypeRepository _repository;
         private readonly IMapper _mapper;
 
-        public ServiceTypeController(IServiceTypeRepository repository,IMapper mapper)
+        public ServiceTypeController(IServiceTypeRepository repository, IMapper mapper)
         {
             _repository = repository;
             _mapper = mapper;
@@ -24,7 +24,7 @@ namespace VehicleServiceBook.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var types=await _repository.GetAllAsync();
+            var types = await _repository.GetAllAsync();
             return Ok(_mapper.Map<IEnumerable<ServiceTypeDto>>(types));
         }
         [HttpGet("{id}")]
@@ -38,18 +38,18 @@ namespace VehicleServiceBook.Controllers
             return Ok(_mapper.Map<ServiceTypeDto>(type));
         }
         [HttpPost]
-        public async Task<IActionResult>Create(CreateServiceTypeDto dto)
+        public async Task<IActionResult> Create(CreateServiceTypeDto dto)
         {
-            var type=_mapper.Map<ServiceType>(dto);
+            var type = _mapper.Map<ServiceType>(dto);
             await _repository.AddAsync(type);
             await _repository.SaveChangesAsync();
             return Ok(_mapper.Map<ServiceTypeDto>(type));
         }
         [HttpPut("{id}")]
-        public async Task<IActionResult>Update(int id,CreateServiceTypeDto dto)
+        public async Task<IActionResult> Update(int id, CreateServiceTypeDto dto)
         {
-            var existing=await _repository.GetByIdAsync(id);
-            if(existing == null)
+            var existing = await _repository.GetByIdAsync(id);
+            if (existing == null)
                 return NotFound();
             existing.Description = dto.Description;
             existing.Price = dto.Price;
@@ -58,12 +58,12 @@ namespace VehicleServiceBook.Controllers
             return NoContent();
         }
         [HttpDelete("{id}")]
-        public async Task<IActionResult>Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var serviceType=await _repository.GetByIdAsync(id);
+            var serviceType = await _repository.GetByIdAsync(id);
             if (serviceType == null)
-            { 
-                return NotFound($"No service type found with Id {id}"); 
+            {
+                return NotFound($"No service type found with Id {id}");
             }
             await _repository.DeleteAsync(id);
             await _repository.SaveChangesAsync();

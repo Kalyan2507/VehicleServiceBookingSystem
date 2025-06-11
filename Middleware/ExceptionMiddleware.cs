@@ -1,8 +1,15 @@
-﻿using System.Net;
+﻿
+using System;
+using System.Net;
 using System.Text.Json;
-using Microsoft.AspNetCore.Hosting; // Add this using directive
-using Microsoft.Extensions.Hosting; // Add this using directive
-using Microsoft.Extensions.Logging; // Add this using directive
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.SecurityTokenService;
+using OpenQA.Selenium;
+using Raven.Client.Exceptions;
+using VehicleServiceBook.Middleware; // Ensure this matches your actual namespace for exceptions
 
 namespace VehicleServiceBook.Middleware
 {
@@ -27,35 +34,54 @@ namespace VehicleServiceBook.Middleware
             }
             catch (Exception ex)
             {
-                // Always log the full exception details
                 _logger.LogError(ex, "An unhandled exception occurred: {Message}", ex.Message);
 
                 context.Response.ContentType = "application/json";
 
-                ApiException response;
+                var statusCode = (int)HttpStatusCode.InternalServerError;
+                var message = "An unexpected error occurred. Please try again later.";
+                string? details = null;
 
-                // Check for your custom validation exception
-                if (ex is CustomValidationException validationException)
+                switch (ex)
                 {
-                    context.Response.StatusCode = validationException.StatusCode;
-                    response = new ApiException(
-                        validationException.StatusCode,
-                        validationException.Message,
-                        _env.IsDevelopment() ? validationException.StackTrace : null // Only show stack trace in development
-                    );
-                }
-                else
-                {
-                    // For all other exceptions (including DbUpdateException if not caught specifically
-                    // in your repository, or other unhandled application errors)
-                    context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                    response = _env.IsDevelopment()
-                        ? new ApiException(context.Response.StatusCode, ex.Message, ex.StackTrace?.ToString())
-                        : new ApiException(context.Response.StatusCode, "An unexpected error occurred. Please try again later.");
+                    case CustomValidationException validationException:
+                        statusCode = validationException.StatusCode;
+                        message = validationException.Message;
+                        details = _env.IsDevelopment() ? validationException.StackTrace : null;
+                        break;
+
+                    case Microsoft.IdentityModel.SecurityTokenService.BadRequestException:
+                        statusCode = (int)HttpStatusCode.BadRequest;
+                        message = ex.Message;
+                        details = _env.IsDevelopment() ? ex.StackTrace : null;
+                        break;
+
+                    case NotFoundException:
+                        statusCode = (int)HttpStatusCode.NotFound;
+                        message = ex.Message;
+                        details = _env.IsDevelopment() ? ex.StackTrace : null;
+                        break;
+
+                    case ConflictException:
+                        statusCode = (int)HttpStatusCode.Conflict;
+                        message = ex.Message;
+                        details = _env.IsDevelopment() ? ex.StackTrace : null;
+                        break;
+
+                    default:
+                        if (_env.IsDevelopment())
+                        {
+                            message = ex.Message;
+                            details = ex.StackTrace;
+                        }
+                        break;
                 }
 
+                var response = new ApiException(statusCode, message, details);
                 var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
                 var json = JsonSerializer.Serialize(response, options);
+
+                context.Response.StatusCode = statusCode;
                 await context.Response.WriteAsync(json);
             }
         }

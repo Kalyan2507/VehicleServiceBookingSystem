@@ -18,7 +18,7 @@ namespace VehicleServiceBook.Repositories
 
         public async Task DeleteAsync(int id)
         {
-            var serviceType=await GetByIdAsync(id);
+            var serviceType = await GetByIdAsync(id);
             if (serviceType != null)
             {
                 _context.ServiceTypes.Remove(serviceType);

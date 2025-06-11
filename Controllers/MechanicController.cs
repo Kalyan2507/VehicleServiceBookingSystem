@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using VehicleServiceBook.Models.Domains;
 using VehicleServiceBook.Models.DTOS;
 using VehicleServiceBook.Repositories;
+using VehicleServiceBook.Services;
 
 namespace VehicleServiceBook.Controllers
 {
@@ -15,121 +16,90 @@ namespace VehicleServiceBook.Controllers
     [ApiController]
     public class MechanicController : ControllerBase
     {
-        private readonly VehicleServiceBookContext _vehicleServiceBookContext;
-        private readonly IMechanicRepository _repo;
-        private readonly IUserRepository _userRepository;
-        private readonly IServiceCenterRepository _serviceCenterRepository;
-        private readonly IMapper _mapper;
-        public MechanicController(VehicleServiceBookContext vehicleServiceBookContext, IMechanicRepository repo, IServiceCenterRepository serviceCenterRepository, IMapper mapper, IUserRepository userRepository)
+        private readonly IMechanicService _service;
+
+        public MechanicController(IMechanicService service)
+
         {
-            _vehicleServiceBookContext = vehicleServiceBookContext;
-            _repo = repo;
-            _userRepository = userRepository;
-            _serviceCenterRepository = serviceCenterRepository;
-            _mapper = mapper;
+
+            _service = service;
 
         }
 
-        //[HttpGet]
-        //public async Task<IActionResult>GetAll()
-        //{
-        //    var mechanics=await _repo.GetAllAsync();
-        //    return Ok(_mapper.Map<IEnumerable<MechanicDto>>(mechanics));
-        //}
+        private string GetEmail() => User.FindFirstValue(ClaimTypes.Email);
+
         [HttpGet("my-mechanics")]
+
         public async Task<IActionResult> GetByLoggedInServiceCenter()
+
         {
-            var email = User.FindFirstValue(ClaimTypes.Email);
-            var user = await _userRepository.GetUserByEmailAsync(email);
-            if (user == null || user.Role != "ServiceCenter")
-                return Unauthorized("You are not authorized.");
 
-            var serviceCenter = await _serviceCenterRepository.GetByUserIdAsync(user.UserId);
-            if (serviceCenter == null)
-                return NotFound("Service Center not found.");
+            var result = await _service.GetMyMechanicsAsync(GetEmail());
 
-            var mechanics = await _repo.GetAllAsync();
-            var assigned = mechanics.Where(m => m.ServiceCenterId == serviceCenter.ServiceCenterId);
+            return Ok(result);
 
-            return Ok(_mapper.Map<IEnumerable<MechanicDto>>(assigned));
         }
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
-        {
-            var email = User.FindFirstValue(ClaimTypes.Email);
-            var user = await _userRepository.GetUserByEmailAsync(email);
-            if (user == null || user.Role != "ServiceCenter")
-                return Unauthorized();
-            var serviceCenter = await _serviceCenterRepository.GetByUserIdAsync(user.UserId);
-            if (serviceCenter == null)
-                return Forbid("Service Center not found.");
 
-            var mechanic = await _repo.GetByIdAsync(id);
-            if (mechanic == null)
-                return NotFound("Mechanic not found");
-            if (mechanic.ServiceCenterId != serviceCenter.ServiceCenterId)
+        [HttpGet("{id}")]
+
+        public async Task<IActionResult> GetById(int id)
+
+        {
+
+            var result = await _service.GetByIdAsync(id, GetEmail());
+
+            if (result == null)
+
                 return Forbid("You are not authorized to access this mechanic.");
 
-            var dto = _mapper.Map<MechanicDto>(mechanic);
-            return Ok(dto);
+            return Ok(result);
+
         }
+
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateMechanicDto dto)
+
+        public async Task<IActionResult> Create(CreateMechanicDto dto)
+
         {
-            var email = User.FindFirstValue(ClaimTypes.Email);
-            var user = await _userRepository.GetUserByEmailAsync(email);
-            var serviceCenter = await _serviceCenterRepository.GetByUserIdAsync(user.UserId);
 
-            if (serviceCenter == null)
-                return BadRequest("Service center not found for the logged-in user.");
+            var result = await _service.CreateAsync(dto, GetEmail());
 
+            return Ok(result);
 
-            var mechanic = _mapper.Map<Mechanic>(dto);
-            mechanic.ServiceCenterId = serviceCenter.ServiceCenterId;
-
-            await _repo.AddAsync(mechanic);
-            await _repo.SaveChangesAsync();
-
-            return Ok(_mapper.Map<MechanicDto>(mechanic));
         }
+
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] CreateMechanicDto dto)
+
+        public async Task<IActionResult> Update(int id, CreateMechanicDto dto)
+
         {
-            var email = User.FindFirstValue(ClaimTypes.Email);
-            var user = await _userRepository.GetUserByEmailAsync(email);
-            var serviceCenter = await _serviceCenterRepository.GetByUserIdAsync(user.UserId);
 
-            if (serviceCenter == null)
-                return Unauthorized("Service center not found.");
+            var result = await _service.UpdateAsync(id, dto, GetEmail());
 
+            if (result == null)
 
-            var existingMechanic = await _repo.GetByIdAsync(id);
-            if (existingMechanic == null)
-                return NotFound("Mechanic not found.");
-
-
-            if (existingMechanic.ServiceCenterId != serviceCenter.ServiceCenterId)
                 return Forbid("You are not allowed to update this mechanic.");
 
+            return Ok(result);
 
-            existingMechanic.MechanicName = dto.MechanicName;
-            existingMechanic.Expertise = dto.Expertise;
-
-            await _repo.UpdateAsync(existingMechanic);
-            await _repo.SaveChangesAsync();
-
-            return Ok(_mapper.Map<MechanicDto>(existingMechanic));
         }
+
         [HttpDelete("{id}")]
+
         public async Task<IActionResult> Delete(int id)
+
         {
-            var mechanic = await _repo.GetByIdAsync(id);
-            if (mechanic == null)
-                return NotFound($"No Mechanic found with Id {id}");
-            await _repo.DeleteAsync(id);
-            await _repo.SaveChangesAsync();
-            return Ok("Deleted Successfully");
+
+            var result = await _service.DeleteAsync(id, GetEmail());
+
+            return result == null
+
+                ? Forbid("You are not allowed to delete this mechanic.")
+
+                : Ok(result);
+
         }
+
 
 
     }
