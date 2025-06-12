@@ -4,9 +4,9 @@ namespace VehicleServiceBook.Models.DTOS
 {
     public class LoginDto
     {
-        [Required]
+        [Required,EmailAddress]
         public string? Email { get; set; }
         [Required]
-        public string? PasswordHash { get; set; }
+        public string? Password { get; set; }
     }
 }

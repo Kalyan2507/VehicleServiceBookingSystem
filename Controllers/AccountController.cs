@@ -6,6 +6,8 @@ using VehicleServiceBook.Repositories;
 using VehicleServiceBook.Models.Domains;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using VehicleServiceBook.Middleware;
+using Microsoft.EntityFrameworkCore; // Add this using for CustomValidationException
 
 namespace VehicleServiceBook.Controllers
 {
@@ -13,12 +15,14 @@ namespace VehicleServiceBook.Controllers
     [ApiController]
     public class AccountController : ControllerBase
     {
+        private readonly VehicleServiceBookContext _context;
         private readonly IUserRepository _userRepository;
         private readonly IServiceCenterRepository _serviceCenterRepository;
         private readonly IMapper _mapper;
 
-        public AccountController(IUserRepository userRepo, IServiceCenterRepository scRepo, IMapper mapper)
+        public AccountController(VehicleServiceBookContext context, IUserRepository userRepo, IServiceCenterRepository scRepo, IMapper mapper)
         {
+            _context = context;
             _userRepository = userRepo;
             _serviceCenterRepository = scRepo;
             _mapper = mapper;
@@ -34,7 +38,6 @@ namespace VehicleServiceBook.Controllers
 
             var hashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.Password);
 
-            // Create Registration record
             var registration = new Registration
             {
                 Name = dto.Name,
@@ -48,7 +51,6 @@ namespace VehicleServiceBook.Controllers
             await _userRepository.AddUserAsync(registration);
             await _userRepository.SaveChangeAsync();
 
-            // If it's a service center, add ServiceCenter details too
             if (dto.Role == "ServiceCenter")
             {
                 var serviceCenter = new ServiceCenter
@@ -66,17 +68,72 @@ namespace VehicleServiceBook.Controllers
             return Ok("Registration successful");
         }
         [Authorize]
-        [HttpGet("me")]
-        public async Task<IActionResult>GetMyAccount()
+        [HttpGet("Profile")]
+        public async Task<IActionResult> GetMe()
         {
             var email = User.FindFirstValue(ClaimTypes.Email);
             var user = await _userRepository.GetUserByEmailAsync(email);
 
             if (user == null)
-                return NotFound("User not found");
+                return Unauthorized();
 
-            var userDto = _mapper.Map<UserDto>(user);
-            return Ok(userDto);
+            if (user.Role == "ServiceCenter")
+            {
+                var serviceCenter = await _serviceCenterRepository.GetByUserIdAsync(user.UserId);
+                if (serviceCenter == null)
+                    return NotFound("Service center info not found.");
+
+                var dto = new ProfileDto
+                {
+                    UserId = user.UserId,
+                    Name = user.Name,
+                    Email = user.Email,
+                    Phone = user.Phone,
+
+                    ServiceCenterId = serviceCenter.ServiceCenterId,
+                    ServiceCenterName = serviceCenter.ServiceCenterName,
+                    ServiceCenterLocation = serviceCenter.ServiceCenterLocation,
+                    ServiceCenterContact = serviceCenter.ServiceCenterContact
+                };
+
+                return Ok(dto);
+            }
+
+            var dtoUser = _mapper.Map<UserDto>(user);
+            return Ok(dtoUser);
+        }
+        [Authorize]
+        [HttpPut("Profile")]
+        public async Task<IActionResult> UpdateMe([FromBody] UpdateAccountDto dto)
+        {
+            var email = User.FindFirstValue(ClaimTypes.Email);
+            var user = await _userRepository.GetUserByEmailAsync(email);
+
+            if (user == null)
+                return Unauthorized();
+
+            user.Name = dto.Name;
+            user.Phone = dto.Phone;
+            user.Address = dto.Address;
+
+            _context.Registrations.Update(user);
+
+
+            if (user.Role == "ServiceCenter")
+            {
+                var serviceCenter = await _context.ServiceCenters.FirstOrDefaultAsync(sc => sc.UserId == user.UserId);
+                if (serviceCenter == null)
+                    return NotFound("Service center data not found.");
+
+                serviceCenter.ServiceCenterName = dto.ServiceCenterName;
+                serviceCenter.ServiceCenterLocation = dto.ServiceCenterLocation;
+                serviceCenter.ServiceCenterContact = dto.ServiceCenterContact;
+
+                _context.ServiceCenters.Update(serviceCenter);
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok();
         }
     }
 }

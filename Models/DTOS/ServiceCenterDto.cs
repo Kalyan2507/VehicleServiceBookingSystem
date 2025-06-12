@@ -1,4 +1,5 @@
-﻿using VehicleServiceBook.Models.DTOS;
+﻿using VehicleServiceBook.Models.Domains;
+using VehicleServiceBook.Models.DTOS;
 
 namespace VehicleServiceBook.Models.DTOS
 {
@@ -13,5 +14,7 @@ namespace VehicleServiceBook.Models.DTOS
         public string? ServiceCenterLocation { get; set; }
 
         public string? ServiceCenterContact { get; set; }
+
+        public virtual Registration? User { get; set; }
     }
 }

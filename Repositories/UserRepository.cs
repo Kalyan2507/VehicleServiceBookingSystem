@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using VehicleServiceBook.Middleware;
 using VehicleServiceBook.Models.Domains;
 
 namespace VehicleServiceBook.Repositories
@@ -28,7 +30,7 @@ namespace VehicleServiceBook.Repositories
 
         public async Task<Registration> GetUserByEmailPasswordAsync(string email, string password)
         {
-            return await _context.Registrations.FirstOrDefaultAsync( u=> u.Email==email && u.PasswordHash==password);
+            return await _context.Registrations.FirstOrDefaultAsync(u => u.Email == email && u.PasswordHash == password);
         }
 
         public async Task<Registration> GetUserByIdAsync(int id)
@@ -38,7 +40,12 @@ namespace VehicleServiceBook.Repositories
 
         public async Task<bool> SaveChangeAsync()
         {
-            return (await _context.SaveChangesAsync())>0;
+            return (await _context.SaveChangesAsync()) > 0;
+        }
+
+        public async Task UpdateAsync(Registration user)
+        {
+            _context.Registrations.Update(user);
         }
     }
 }

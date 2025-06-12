@@ -20,6 +20,7 @@ namespace VehicleServiceBook.Mappings
             CreateMap<Vehicle, VehicleDto>();
             CreateMap<CreateBookingDto, Booking>();
             CreateMap<Booking, BookingDto>();
+            CreateMap<Invoice, InvoiceDto>();
         }
     }
 }

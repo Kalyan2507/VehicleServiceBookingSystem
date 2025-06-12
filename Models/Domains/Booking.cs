@@ -14,18 +14,17 @@ public partial class Booking
     public int? VehicleId { get; set; }
 
     public int? ServiceCenterId { get; set; }
+    public int ServiceTypeId { get; set; }
+    public int? MechanicId { get; set; }
+    public DateTime Date { get; set; }
 
-    public DateTime? Date { get; set; }
-
-    public string? TimeSlot { get; set; }
+    public string TimeSlot { get; set; } = null!;
 
     public string? Status { get; set; }
-
-    public virtual Invoice? Invoice { get; set; }
-
-    public virtual ServiceCenter? ServiceCenter { get; set; }
-
-
-    public virtual Vehicle? Vehicle { get; set; }
-    public virtual ServiceType? ServiceType { get; set; }
+    public Registration Registration { get; set; }
+    public Vehicle Vehicle { get; set; }
+    public ServiceCenter ServiceCenter { get; set; }
+    public ServiceType ServiceType { get; set; }
+    public Invoice Invoice { get; set; }
+    public Mechanic Mechanic { get; set; }
 }

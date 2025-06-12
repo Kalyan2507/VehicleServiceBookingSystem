@@ -15,6 +15,8 @@ public partial class Invoice
 
     public string? PaymentStatus { get; set; }
 
+    public DateTime Date { get; set; }
+
     public virtual Booking? Booking { get; set; }
 
     public virtual ServiceType? ServiceType { get; set; }

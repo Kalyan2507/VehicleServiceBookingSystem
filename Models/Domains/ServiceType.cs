@@ -10,6 +10,6 @@ public partial class ServiceType
     public string? Description { get; set; }
 
     public decimal? Price { get; set; }
-
-    public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
+    public ICollection<Booking> Bookings { get; set; }
+    public virtual ICollection<Invoice> Invoices { get; set; }
 }
