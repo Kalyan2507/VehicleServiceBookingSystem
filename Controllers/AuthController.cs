@@ -38,7 +38,8 @@ namespace VehicleServiceBook.Controllers
             var claims = new[]
             {
      new Claim(ClaimTypes.Email, user.Email),
-     new Claim(ClaimTypes.Role, user.Role)
+     new Claim(ClaimTypes.Role, user.Role),
+     new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString())
 };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
@@ -48,7 +49,7 @@ namespace VehicleServiceBook.Controllers
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddHours(1),
+                expires: DateTime.Now.AddMinutes(60),
                 signingCredentials: creds
             );
 
