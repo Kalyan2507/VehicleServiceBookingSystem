@@ -38,7 +38,7 @@ namespace VehicleServiceBook.Controllers
         public async Task<IActionResult> Create(CreateBookingDto dto)
         {
             var result = await _service.CreateBookingAsync(dto, GetEmail());
-            return Ok(result);
+            return Ok("Booking Scheduled");
         }
 
         [HttpPut("{id}")]
