@@ -1,14 +1,9 @@
-﻿using AutoMapper;
-using Microsoft.AspNetCore.Http;
+﻿using System.Security.Claims;
+using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VehicleServiceBook.Models.DTOS;
-using VehicleServiceBook.Repositories;
-using VehicleServiceBook.Models.Domains;
-using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
-using VehicleServiceBook.Middleware;
-using Microsoft.EntityFrameworkCore;
-using VehicleServiceBook.Services; // Add this using for CustomValidationException
+using VehicleServiceBook.Services;
 
 namespace VehicleServiceBook.Controllers
 {
@@ -23,51 +18,14 @@ namespace VehicleServiceBook.Controllers
             _userService = userService;
         }
 
-        //[HttpPost("register")]
-        //public async Task<IActionResult> Register([FromBody] RegisterAccountDto dto)
-        //{
-        //    if (!ModelState.IsValid)
-        //        return BadRequest(ModelState);
-
-        //    if (dto.Role != "User" && dto.Role != "ServiceCenter")
-        //        return BadRequest("Invalid role");
-
-        //    var success = await _userService.RegisterAccountAsync(dto);
-
-        //    if (!success)
-        //        return BadRequest("User Already Exists, Please Login");
-
-        //    return Ok("Registration successful");
-        //}
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterAccountDto dto)
         {
-            // Validate standard fields first
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // ✅ Check role
             if (dto.Role != "User" && dto.Role != "ServiceCenter")
                 return BadRequest("Invalid role");
-
-            // ✅ ServiceCenter-specific validation
-            if (dto.Role == "ServiceCenter")
-            {
-                if (string.IsNullOrWhiteSpace(dto.ServiceCenterName))
-                    ModelState.AddModelError("ServiceCenterName", "Service Center Name is required.");
-
-                if (string.IsNullOrWhiteSpace(dto.ServiceCenterLocation))
-                    ModelState.AddModelError("ServiceCenterLocation", "Service Center Location is required.");
-
-                if (string.IsNullOrWhiteSpace(dto.ServiceCenterContact))
-                    ModelState.AddModelError("ServiceCenterContact", "Service Center Contact is required.");
-                else if (!System.Text.RegularExpressions.Regex.IsMatch(dto.ServiceCenterContact, @"^\d{10}$"))
-                    ModelState.AddModelError("ServiceCenterContact", "Service Center Contact must be exactly 10 digits.");
-            }
-
-            // Return validation errors if any
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
 
             var success = await _userService.RegisterAccountAsync(dto);
 
@@ -76,7 +34,6 @@ namespace VehicleServiceBook.Controllers
 
             return Ok("Registration successful");
         }
-
 
         [Authorize]
         [HttpGet("Profile")]
