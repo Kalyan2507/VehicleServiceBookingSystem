@@ -31,15 +31,7 @@ namespace VehicleServiceBook.Services
         public async Task<UserDto> RegisterUserAsync(RegisterUserDto dto)
         {
             var hashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.PasswordHash);
-            var registration = new Registration
-            {
-                Name = dto.Name,
-                Email = dto.Email,
-                Phone = dto.Phone,
-                Address = dto.Address,
-                PasswordHash = hashedPassword,
-                Role = dto.Role
-            };
+            var registration = _mapper.Map<Registration>(dto);
 
             await _userRepository.AddUserAsync(registration);
             await _userRepository.SaveChangeAsync();

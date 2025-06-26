@@ -22,21 +22,23 @@ namespace VehicleServiceBook.Services
         {
             var user = await _userRepo.GetUserByEmailAsync(userEmail);
             var bookings = await _repo.GetDetailedByUserIdAsync(user.UserId);
-            return bookings.Select(b => new BookingDto
-            {
-                BookingId = b.Bookingid,
-                RegistrationNumber = b.Vehicle.RegistrationNumber,
-                VehicleId = b.Vehicle.VehicleId,
-                Make = b.Vehicle.Make,
-                ServiceTypeDescription = b.ServiceType.Description,
-                MechanicName = b.Mechanic?.MechanicName ?? "Not Assigned",
-                Date = b.Date,
-                TimeSlot = b.TimeSlot,
-                ServiceStatus = b.Status,
-                ServiceTypeId = b.ServiceTypeId,
-                ServiceCenterId = b.ServiceCenterId,
-                ServiceCenterName = b.ServiceCenter.ServiceCenterName
-            });
+            return bookings.Select(b => _mapper.Map<BookingDto>(b));
+            //new BookingDto
+            //{
+            //    BookingId = b.Bookingid,
+            //    RegistrationNumber = b.Vehicle.RegistrationNumber,
+            //    VehicleId = b.Vehicle.VehicleId,
+            //    Make = b.Vehicle.Make,
+            //    ServiceTypeDescription = b.ServiceType.Description,
+            //    MechanicName = b.Mechanic?.MechanicName ?? "Not Assigned",
+            //    Date = b.Date,
+            //    TimeSlot = b.TimeSlot,
+            //    ServiceStatus = b.Status,
+            //    ServiceTypeId = b.ServiceTypeId,
+            //    ServiceCenterId = b.ServiceCenterId,
+            //    ServiceCenterName = b.ServiceCenter.ServiceCenterName
+            //}
+            
         }
 
         public async Task<BookingDto?> GetBookingByIdAsync(int id, string email)
@@ -46,19 +48,20 @@ namespace VehicleServiceBook.Services
             if (booking == null || booking.UserId != user.UserId)
                 return null;
 
-            return new BookingDto
-            {
-                BookingId = booking.Bookingid,
-                RegistrationNumber = booking.Vehicle?.RegistrationNumber,
-                VehicleId = booking.Vehicle?.VehicleId ?? 0,
-                ServiceTypeDescription = booking.ServiceType?.Description,
-                MechanicName = booking.Mechanic?.MechanicName ?? "Not Assigned",
-                Date = booking.Date,
-                TimeSlot = booking.TimeSlot,
-                ServiceStatus = booking.Status,
-                ServiceTypeId = booking.ServiceTypeId,
-                ServiceCenterId = booking.ServiceCenterId
-            };
+            return _mapper.Map<BookingDto>(booking);
+            //new BookingDto
+            //{
+            //    BookingId = booking.Bookingid,
+            //    RegistrationNumber = booking.Vehicle?.RegistrationNumber,
+            //    VehicleId = booking.Vehicle?.VehicleId ?? 0,
+            //    ServiceTypeDescription = booking.ServiceType?.Description,
+            //    MechanicName = booking.Mechanic?.MechanicName ?? "Not Assigned",
+            //    Date = booking.Date,
+            //    TimeSlot = booking.TimeSlot,
+            //    ServiceStatus = booking.Status,
+            //    ServiceTypeId = booking.ServiceTypeId,
+            //    ServiceCenterId = booking.ServiceCenterId
+            //};
         }
 
         public async Task<BookingDto?> CreateBookingAsync(CreateBookingDto dto, string email)
@@ -66,17 +69,11 @@ namespace VehicleServiceBook.Services
             var user = await _userRepo.GetUserByEmailAsync(email);
             var mechanic = await _repo.GetAvailableMechanicAsync(dto.ServiceCenterId ?? 0);
 
-            var booking = new Booking
-            {
-                UserId = user.UserId,
-                VehicleId = dto.VehicleId,
-                ServiceCenterId = dto.ServiceCenterId,
-                ServiceTypeId = (int)dto.ServiceTypeId,
-                Date = dto.Date,
-                TimeSlot = dto.TimeSlot,
-                Status = "Pending",
-                MechanicId = mechanic?.Mechanicid ?? 0
-            };
+
+            var booking = _mapper.Map<Booking>(dto);
+            booking.UserId = user.UserId;
+            booking.MechanicId = mechanic?.Mechanicid ?? 0;
+
 
             await _repo.AddAsync(booking);
             await _repo.SaveChangesAsync();
@@ -89,11 +86,13 @@ namespace VehicleServiceBook.Services
             var booking = await _repo.GetByIdAsync(id);
             if (booking == null) return false;
 
-            booking.VehicleId = dto.VehicleId;
-            booking.ServiceCenterId = dto.ServiceCenterId;
-            booking.ServiceTypeId = (int)dto.ServiceTypeId;
-            booking.Date = dto.Date;
-            booking.TimeSlot = dto.TimeSlot;
+            //booking.VehicleId = dto.VehicleId;
+            //booking.ServiceCenterId = dto.ServiceCenterId;
+            //booking.ServiceTypeId = (int)dto.ServiceTypeId;
+            //booking.Date = dto.Date;
+            //booking.TimeSlot = dto.TimeSlot;
+
+            _mapper.Map(dto, booking);
 
             await _repo.UpdateAsync(booking);
             return await _repo.SaveChangesAsync();

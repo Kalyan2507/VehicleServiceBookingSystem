@@ -23,7 +23,7 @@ namespace VehicleServiceBook.Models.DTOS
         public string? ServiceCenterName { get; set; }
         public string? ServiceCenterLocation { get; set; }
 
-        [Required, RegularExpression(@"^\d{10}$", ErrorMessage = "ServiceCenterContact must be exactly 10 digits")]
+        [RegularExpression(@"^\d{10}$", ErrorMessage = "ServiceCenterContact must be exactly 10 digits")]
         public string? ServiceCenterContact { get; set; }
     }
 }

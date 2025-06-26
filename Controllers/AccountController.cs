@@ -7,7 +7,8 @@ using VehicleServiceBook.Models.Domains;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using VehicleServiceBook.Middleware;
-using Microsoft.EntityFrameworkCore; // Add this using for CustomValidationException
+using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace VehicleServiceBook.Controllers
 {
@@ -36,6 +37,33 @@ namespace VehicleServiceBook.Controllers
             if (dto.Role != "User" && dto.Role != "ServiceCenter")
                 return BadRequest("Invalid role");
 
+            // Conditional validation for ServiceCenter role
+            if (dto.Role == "ServiceCenter")
+            {
+                if (string.IsNullOrWhiteSpace(dto.ServiceCenterName))
+                {
+                    ModelState.AddModelError("ServiceCenterName", "Service Center Name is required for ServiceCenter role.");
+                }
+                if (string.IsNullOrWhiteSpace(dto.ServiceCenterLocation))
+                {
+                    ModelState.AddModelError("ServiceCenterLocation", "Service Center Location is required for ServiceCenter role.");
+                }
+                if (string.IsNullOrWhiteSpace(dto.ServiceCenterContact))
+                {
+                    ModelState.AddModelError("ServiceCenterContact", "Service Center Contact is required for ServiceCenter role.");
+                }
+                else if (!Regex.IsMatch(dto.ServiceCenterContact, @"^\d{10}$"))
+                {
+                    ModelState.AddModelError("ServiceCenterContact", "ServiceCenterContact must be exactly 10 digits.");
+                }
+            }
+
+            // Check ModelState again after conditional validation
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             var hashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.Password);
 
             var registration = new Registration
@@ -48,8 +76,26 @@ namespace VehicleServiceBook.Controllers
                 Role = dto.Role
             };
 
-            await _userRepository.AddUserAsync(registration);
-            await _userRepository.SaveChangeAsync();
+            try
+            {
+                await _userRepository.AddUserAsync(registration);
+                await _userRepository.SaveChangeAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                if (ex.InnerException != null && ex.InnerException.Message.Contains("duplicate key"))
+                {
+                    // More specific check for unique constraint violation, e.g., for email
+                    if (_userRepository.GetUserByEmailAsync(dto.Email).Result != null)
+                    {
+                        return Conflict("Email already registered.");
+                    }
+                    // Handle other unique constraints if applicable
+                }
+                // Fallback for other database update exceptions
+                return StatusCode(500, "An error occurred while saving the user.");
+            }
+
 
             if (dto.Role == "ServiceCenter")
             {
@@ -61,11 +107,23 @@ namespace VehicleServiceBook.Controllers
                     ServiceCenterContact = dto.ServiceCenterContact
                 };
 
-                await _serviceCenterRepository.AddAsync(serviceCenter);
-                await _serviceCenterRepository.SaveChangesAsync();
+                try
+                {
+                    await _serviceCenterRepository.AddAsync(serviceCenter);
+                    await _serviceCenterRepository.SaveChangesAsync();
+                }
+                catch (DbUpdateException ex)
+                {
+                    // Handle potential unique constraint for service center contact if applicable
+                    if (ex.InnerException != null && ex.InnerException.Message.Contains("duplicate key"))
+                    {
+                        return Conflict("Service Center Contact already registered.");
+                    }
+                    return StatusCode(500, "An error occurred while saving service center details.");
+                }
             }
 
-            return Ok("Registration successful");
+            return Ok(new { message = "Registration successful" });
         }
         [Authorize]
         [HttpGet("Profile")]
