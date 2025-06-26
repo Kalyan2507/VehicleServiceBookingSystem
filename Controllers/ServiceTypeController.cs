@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using VehicleServiceBook.Models.Domains;
 using VehicleServiceBook.Models.DTOS;
 using VehicleServiceBook.Repositories;
+using VehicleServiceBook.Services;
 
 namespace VehicleServiceBook.Controllers
 {
@@ -13,61 +14,46 @@ namespace VehicleServiceBook.Controllers
     [ApiController]
     public class ServiceTypeController : ControllerBase
     {
-        private readonly IServiceTypeRepository _repository;
-        private readonly IMapper _mapper;
+        private readonly IServiceTypeService _service;
 
-        public ServiceTypeController(IServiceTypeRepository repository, IMapper mapper)
+        public ServiceTypeController(IServiceTypeService service)
         {
-            _repository = repository;
-            _mapper = mapper;
+            _service = service;
         }
+
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var types = await _repository.GetAllAsync();
-            return Ok(_mapper.Map<IEnumerable<ServiceTypeDto>>(types));
+            var result = await _service.GetAllAsync();
+            return Ok(result);
         }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var type = await _repository.GetByIdAsync(id);
-            if (type == null)
-            {
-                return NotFound();
-            }
-            return Ok(_mapper.Map<ServiceTypeDto>(type));
+            var result = await _service.GetByIdAsync(id);
+            return result == null ? NotFound() : Ok(result);
         }
+
         [HttpPost]
         public async Task<IActionResult> Create(CreateServiceTypeDto dto)
         {
-            var type = _mapper.Map<ServiceType>(dto);
-            await _repository.AddAsync(type);
-            await _repository.SaveChangesAsync();
-            return Ok(_mapper.Map<ServiceTypeDto>(type));
+            var result = await _service.CreateAsync(dto);
+            return Ok(result);
         }
+
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, CreateServiceTypeDto dto)
         {
-            var existing = await _repository.GetByIdAsync(id);
-            if (existing == null)
-                return NotFound();
-            existing.Description = dto.Description;
-            existing.Price = dto.Price;
-            await _repository.UpdateAsync(existing);
-            await _repository.SaveChangesAsync();
-            return NoContent();
+            var result = await _service.UpdateAsync(id, dto);
+            return result == null ? NotFound($"ServiceType with ID {id} not found") : Ok(result);
         }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var serviceType = await _repository.GetByIdAsync(id);
-            if (serviceType == null)
-            {
-                return NotFound($"No service type found with Id {id}");
-            }
-            await _repository.DeleteAsync(id);
-            await _repository.SaveChangesAsync();
-            return NoContent();
+            var result = await _service.DeleteAsync(id);
+            return result == null ? NotFound($"No ServiceType found with ID {id}") : Ok(result);
         }
     }
 }

@@ -7,7 +7,8 @@ using VehicleServiceBook.Models.Domains;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using VehicleServiceBook.Middleware;
-using Microsoft.EntityFrameworkCore; // Add this using for CustomValidationException
+using Microsoft.EntityFrameworkCore;
+using VehicleServiceBook.Services; // Add this using for CustomValidationException
 
 namespace VehicleServiceBook.Controllers
 {
@@ -15,124 +16,91 @@ namespace VehicleServiceBook.Controllers
     [ApiController]
     public class AccountController : ControllerBase
     {
-        private readonly VehicleServiceBookContext _context;
-        private readonly IUserRepository _userRepository;
-        private readonly IServiceCenterRepository _serviceCenterRepository;
-        private readonly IMapper _mapper;
+        private readonly IUserService _userService;
 
-        public AccountController(VehicleServiceBookContext context, IUserRepository userRepo, IServiceCenterRepository scRepo, IMapper mapper)
+        public AccountController(IUserService userService, IMapper mapper)
         {
-            _context = context;
-            _userRepository = userRepo;
-            _serviceCenterRepository = scRepo;
-            _mapper = mapper;
+            _userService = userService;
         }
 
+        //[HttpPost("register")]
+        //public async Task<IActionResult> Register([FromBody] RegisterAccountDto dto)
+        //{
+        //    if (!ModelState.IsValid)
+        //        return BadRequest(ModelState);
+
+        //    if (dto.Role != "User" && dto.Role != "ServiceCenter")
+        //        return BadRequest("Invalid role");
+
+        //    var success = await _userService.RegisterAccountAsync(dto);
+
+        //    if (!success)
+        //        return BadRequest("User Already Exists, Please Login");
+
+        //    return Ok("Registration successful");
+        //}
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterAccountDto dto)
         {
+            // Validate standard fields first
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
+
+            // ✅ Check role
             if (dto.Role != "User" && dto.Role != "ServiceCenter")
                 return BadRequest("Invalid role");
 
-            var hashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.Password);
-
-            var registration = new Registration
-            {
-                Name = dto.Name,
-                Email = dto.Email,
-                Phone = dto.Phone,
-                Address = dto.Address,
-                PasswordHash = hashedPassword,
-                Role = dto.Role
-            };
-
-            await _userRepository.AddUserAsync(registration);
-            await _userRepository.SaveChangeAsync();
-
+            // ✅ ServiceCenter-specific validation
             if (dto.Role == "ServiceCenter")
             {
-                var serviceCenter = new ServiceCenter
-                {
-                    UserId = registration.UserId,
-                    ServiceCenterName = dto.ServiceCenterName,
-                    ServiceCenterLocation = dto.ServiceCenterLocation,
-                    ServiceCenterContact = dto.ServiceCenterContact
-                };
+                if (string.IsNullOrWhiteSpace(dto.ServiceCenterName))
+                    ModelState.AddModelError("ServiceCenterName", "Service Center Name is required.");
 
-                await _serviceCenterRepository.AddAsync(serviceCenter);
-                await _serviceCenterRepository.SaveChangesAsync();
+                if (string.IsNullOrWhiteSpace(dto.ServiceCenterLocation))
+                    ModelState.AddModelError("ServiceCenterLocation", "Service Center Location is required.");
+
+                if (string.IsNullOrWhiteSpace(dto.ServiceCenterContact))
+                    ModelState.AddModelError("ServiceCenterContact", "Service Center Contact is required.");
+                else if (!System.Text.RegularExpressions.Regex.IsMatch(dto.ServiceCenterContact, @"^\d{10}$"))
+                    ModelState.AddModelError("ServiceCenterContact", "Service Center Contact must be exactly 10 digits.");
             }
+
+            // Return validation errors if any
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var success = await _userService.RegisterAccountAsync(dto);
+
+            if (!success)
+                return BadRequest("User Already Exists, Please Login");
 
             return Ok("Registration successful");
         }
+
+
         [Authorize]
         [HttpGet("Profile")]
         public async Task<IActionResult> GetMe()
         {
             var email = User.FindFirstValue(ClaimTypes.Email);
-            var user = await _userRepository.GetUserByEmailAsync(email);
+            var profile = await _userService.GetProfileAsync(email);
 
-            if (user == null)
+            if (profile == null)
                 return Unauthorized();
 
-            if (user.Role == "ServiceCenter")
-            {
-                var serviceCenter = await _serviceCenterRepository.GetByUserIdAsync(user.UserId);
-                if (serviceCenter == null)
-                    return NotFound("Service center info not found.");
-
-                var dto = new ProfileDto
-                {
-                    UserId = user.UserId,
-                    Name = user.Name,
-                    Email = user.Email,
-                    Phone = user.Phone,
-
-                    ServiceCenterId = serviceCenter.ServiceCenterId,
-                    ServiceCenterName = serviceCenter.ServiceCenterName,
-                    ServiceCenterLocation = serviceCenter.ServiceCenterLocation,
-                    ServiceCenterContact = serviceCenter.ServiceCenterContact
-                };
-
-                return Ok(dto);
-            }
-
-            var dtoUser = _mapper.Map<UserDto>(user);
-            return Ok(dtoUser);
+            return Ok(profile);
         }
+
         [Authorize]
         [HttpPut("Profile")]
         public async Task<IActionResult> UpdateMe([FromBody] UpdateAccountDto dto)
         {
             var email = User.FindFirstValue(ClaimTypes.Email);
-            var user = await _userRepository.GetUserByEmailAsync(email);
+            var result = await _userService.UpdateProfileAsync(email, dto);
 
-            if (user == null)
-                return Unauthorized();
+            if (!result)
+                return NotFound("User or Service center data not found.");
 
-            user.Name = dto.Name;
-            user.Phone = dto.Phone;
-            user.Address = dto.Address;
-
-            _context.Registrations.Update(user);
-
-
-            if (user.Role == "ServiceCenter")
-            {
-                var serviceCenter = await _context.ServiceCenters.FirstOrDefaultAsync(sc => sc.UserId == user.UserId);
-                if (serviceCenter == null)
-                    return NotFound("Service center data not found.");
-
-                serviceCenter.ServiceCenterName = dto.ServiceCenterName;
-                serviceCenter.ServiceCenterLocation = dto.ServiceCenterLocation;
-                serviceCenter.ServiceCenterContact = dto.ServiceCenterContact;
-
-                _context.ServiceCenters.Update(serviceCenter);
-            }
-
-            await _context.SaveChangesAsync();
             return Ok();
         }
     }

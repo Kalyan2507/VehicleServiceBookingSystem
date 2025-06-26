@@ -51,15 +51,42 @@ namespace VehicleServiceBook.Services
                 BookingId = booking.Bookingid,
                 RegistrationNumber = booking.Vehicle?.RegistrationNumber,
                 VehicleId = booking.Vehicle?.VehicleId ?? 0,
+                Make = booking.Vehicle.Make,
                 ServiceTypeDescription = booking.ServiceType?.Description,
                 MechanicName = booking.Mechanic?.MechanicName ?? "Not Assigned",
                 Date = booking.Date,
                 TimeSlot = booking.TimeSlot,
                 ServiceStatus = booking.Status,
                 ServiceTypeId = booking.ServiceTypeId,
-                ServiceCenterId = booking.ServiceCenterId
+                ServiceCenterId = booking.ServiceCenterId,
+                ServiceCenterName = booking.ServiceCenter.ServiceCenterName
             };
         }
+
+        //public async Task<BookingDto?> CreateBookingAsync(CreateBookingDto dto, string email)
+        //{
+        //    var user = await _userRepo.GetUserByEmailAsync(email);
+        //    var mechanic = await _repo.GetAvailableMechanicAsync(dto.ServiceCenterId ?? 0);
+
+        //    var booking = new Booking
+        //    {
+        //        UserId = user.UserId,
+        //        VehicleId = dto.VehicleId,
+        //        ServiceCenterId = dto.ServiceCenterId,
+        //        ServiceTypeId = (int)dto.ServiceTypeId,
+        //        Date = dto.Date,
+        //        TimeSlot = dto.TimeSlot,
+        //        Status = "Pending",
+        //        MechanicId = mechanic?.Mechanicid ?? 0
+        //    };
+
+        //    await _repo.AddAsync(booking);
+        //    await _repo.SaveChangesAsync();
+
+        //    var detailedBooking = await _repo.GetDetailedByIdAsync(booking.Bookingid);
+
+        //    return _mapper.Map<BookingDto>(detailedBooking);
+        //}
 
         public async Task<BookingDto?> CreateBookingAsync(CreateBookingDto dto, string email)
         {
@@ -75,13 +102,32 @@ namespace VehicleServiceBook.Services
                 Date = dto.Date,
                 TimeSlot = dto.TimeSlot,
                 Status = "Pending",
-                MechanicId = mechanic?.Mechanicid ?? 0
+                MechanicId = mechanic?.Mechanicid // null if not assigned
             };
 
             await _repo.AddAsync(booking);
             await _repo.SaveChangesAsync();
 
-            return _mapper.Map<BookingDto>(booking);
+            // Fetch with full details
+            var detailedBooking = await _repo.GetDetailedByIdAsync(booking.Bookingid);
+
+            if (detailedBooking == null) return null;
+
+            return new BookingDto
+            {
+                BookingId = detailedBooking.Bookingid,
+                RegistrationNumber = detailedBooking.Vehicle?.RegistrationNumber,
+                VehicleId = detailedBooking.Vehicle?.VehicleId ?? 0,
+                Make = detailedBooking.Vehicle?.Make,
+                ServiceTypeDescription = detailedBooking.ServiceType?.Description,
+                MechanicName = detailedBooking.Mechanic?.MechanicName ?? "Not Assigned",
+                Date = detailedBooking.Date,
+                TimeSlot = detailedBooking.TimeSlot,
+                ServiceStatus = detailedBooking.Status,
+                ServiceTypeId = detailedBooking.ServiceTypeId,
+                ServiceCenterId = detailedBooking.ServiceCenterId,
+                ServiceCenterName = detailedBooking.ServiceCenter?.ServiceCenterName
+            };
         }
 
         public async Task<bool> UpdateBookingAsync(int id, CreateBookingDto dto)

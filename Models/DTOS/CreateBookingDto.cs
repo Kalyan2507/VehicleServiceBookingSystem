@@ -6,6 +6,7 @@
 
         public int? ServiceCenterId { get; set; }
 
+
         public DateTime Date { get; set; }
 
         public int? ServiceTypeId { get; set; }

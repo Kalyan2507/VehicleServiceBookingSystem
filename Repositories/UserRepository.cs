@@ -16,6 +16,7 @@ namespace VehicleServiceBook.Repositories
         public async Task AddUserAsync(Registration user)
         {
             await _context.Registrations.AddAsync(user);
+            await _context.SaveChangesAsync();
         }
 
         public async Task<IEnumerable<Registration>> GetAllUserAsync()

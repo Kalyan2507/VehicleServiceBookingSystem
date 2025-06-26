@@ -4,11 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
-using VehicleServiceBook.Models.Domains;
 using VehicleServiceBook.Models.DTOS;
-using VehicleServiceBook.Models.Exceptions;
-using VehicleServiceBook.Repositories;
 using VehicleServiceBook.Services;
 
 namespace VehicleServiceBook.Controllers
@@ -20,14 +16,9 @@ namespace VehicleServiceBook.Controllers
     {
         private readonly IBookingService _service;
 
+        public BookingController(IBookingService service)
         {
             _service = service;
-        }
-        private async Task<int?> GetUserIdFromToken()
-        {
-            var email = User.FindFirstValue(ClaimTypes.Email);
-            var user = await _userRepo.GetUserByEmailAsync(email);
-            return user?.UserId;
         }
 
         private string GetEmail() => User.FindFirstValue(ClaimTypes.Email);
@@ -39,9 +30,8 @@ namespace VehicleServiceBook.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-        }
-
-            return Ok(_mapper.Map<BookingDto>(booking));
+            var result = await _service.GetBookingByIdAsync(id, GetEmail());
+            return result == null ? NotFound() : Ok(result);
         }
 
         [HttpPost]
@@ -64,5 +54,14 @@ namespace VehicleServiceBook.Controllers
             var success = await _service.UpdateStatusAsync(id, dto.Status, GetEmail());
             return success ? NoContent() : Forbid();
         }
+
+        [HttpGet("servicecenters")]
+        public async Task<IActionResult> GetServiceCenters() =>
+            Ok(await _service.GetServiceCentersAsync());
+
+        [HttpGet("servicetypes")]
+        public async Task<IActionResult> GetServiceTypes() =>
+            Ok(await _service.GetServiceTypesAsync());
     }
+
 }

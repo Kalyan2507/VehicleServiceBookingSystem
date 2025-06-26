@@ -1,89 +1,102 @@
-﻿
-using System;
-using System.Net;
+﻿using System.Net;
+
 using System.Text.Json;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.SecurityTokenService;
+
+using Microsoft.EntityFrameworkCore;
+
 using OpenQA.Selenium;
+
 using Raven.Client.Exceptions;
-using VehicleServiceBook.Middleware; // Ensure this matches your actual namespace for exceptions
 
 namespace VehicleServiceBook.Middleware
-{
-    public class ExceptionMiddleware
-    {
-        private readonly RequestDelegate _next;
-        private readonly ILogger<ExceptionMiddleware> _logger;
-        private readonly IHostEnvironment _env;
 
-        public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger, IHostEnvironment env)
+{
+
+    public class ExceptionMiddleware
+
+    {
+
+        private readonly RequestDelegate _next;
+
+        private readonly ILogger<ExceptionMiddleware> _logger;
+
+        public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
+
         {
+
             _next = next;
+
             _logger = logger;
-            _env = env;
+
         }
 
         public async Task InvokeAsync(HttpContext context)
+
         {
+
             try
+
             {
-                await _next(context);
+
+                await _next(context); // try to continue pipeline
+
             }
-            catch (Exception ex)
+
+            catch (DbUpdateException dbEx)
+
             {
-                _logger.LogError(ex, "An unhandled exception occurred: {Message}", ex.Message);
+
+                _logger.LogError(dbEx, "Database update failed");
+
+                context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
 
                 context.Response.ContentType = "application/json";
 
-                var statusCode = (int)HttpStatusCode.InternalServerError;
-                var message = "An unexpected error occurred. Please try again later.";
-                string? details = null;
+                var response = new
 
-                switch (ex)
                 {
-                    case CustomValidationException validationException:
-                        statusCode = validationException.StatusCode;
-                        message = validationException.Message;
-                        details = _env.IsDevelopment() ? validationException.StackTrace : null;
-                        break;
 
-                    case Microsoft.IdentityModel.SecurityTokenService.BadRequestException:
-                        statusCode = (int)HttpStatusCode.BadRequest;
-                        message = ex.Message;
-                        details = _env.IsDevelopment() ? ex.StackTrace : null;
-                        break;
+                    statusCode = context.Response.StatusCode,
 
-                    case NotFoundException:
-                        statusCode = (int)HttpStatusCode.NotFound;
-                        message = ex.Message;
-                        details = _env.IsDevelopment() ? ex.StackTrace : null;
-                        break;
+                    message = "A database error occurred.",
 
-                    case ConflictException:
-                        statusCode = (int)HttpStatusCode.Conflict;
-                        message = ex.Message;
-                        details = _env.IsDevelopment() ? ex.StackTrace : null;
-                        break;
+                    details = dbEx.InnerException?.Message ?? dbEx.Message
 
-                    default:
-                        if (_env.IsDevelopment())
-                        {
-                            message = ex.Message;
-                            details = ex.StackTrace;
-                        }
-                        break;
-                }
+                };
 
-                var response = new ApiException(statusCode, message, details);
-                var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-                var json = JsonSerializer.Serialize(response, options);
+                await context.Response.WriteAsync(JsonSerializer.Serialize(response));
 
-                context.Response.StatusCode = statusCode;
-                await context.Response.WriteAsync(json);
             }
+
+            catch (Exception ex)
+
+            {
+
+                _logger.LogError(ex, "Unhandled error occurred");
+
+                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+
+                context.Response.ContentType = "application/json";
+
+                var response = new
+
+                {
+
+                    statusCode = context.Response.StatusCode,
+
+                    message = "An unexpected error occurred.",
+
+                    details = ex.Message
+
+                };
+
+                await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+
+            }
+
         }
+
     }
+
 }
+

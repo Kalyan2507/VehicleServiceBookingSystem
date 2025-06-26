@@ -29,14 +29,13 @@ public partial class VehicleServiceBookContext : DbContext
 
     public virtual DbSet<Vehicle> Vehicles { get; set; }
 
-    //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-    //        => optionsBuilder.UseSqlServer("Server=LTIN617505\\SQLEXPRESS;Database=VehicleServiceBook;Trusted_Connection=True;TrustServerCertificate=True");
-
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Data Source=LTIN617242\\SQLEXPRESS;Initial Catalog=VehicleServiceBook;Integrated Security=True;Trust Server Certificate=True");
-
+    {
+        if (!optionsBuilder.IsConfigured)
+        {
+            // Only configure SQL Server if no provider was set (e.g., in production)
+            optionsBuilder.UseSqlServer("Server=LTIN617505\\SQLEXPRESS;Database=VehicleServiceBook;Trusted_Connection=True;TrustServerCertificate=True");
+        }
     }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -48,9 +47,7 @@ public partial class VehicleServiceBookContext : DbContext
 
             entity.ToTable("Registration");
 
-            entity.HasOne(d => d.ServiceCenter).WithMany(p => p.Bookings)
-                .HasForeignKey(d => d.ServiceCenterId)
-                .HasConstraintName("FK__Booking__Service__5AEE82B9");
+            entity.HasIndex(e => e.Email, "UQ__Registra__A9D10534FDAE5997").IsUnique();
 
             entity.Property(e => e.Address).HasMaxLength(200);
 
@@ -262,7 +259,6 @@ public partial class VehicleServiceBookContext : DbContext
                 .HasConstraintName("FK_Invoice_ServiceType");
 
         });
-
 
 
         OnModelCreatingPartial(modelBuilder);

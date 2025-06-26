@@ -4,28 +4,35 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using VehicleServiceBook.Models.Domains;
+using VehicleServiceBook.Repositories;
 
 namespace VehicleServiceBook.Services
 {
     public class AuthService : IAuthService
     {
-        private readonly VehicleServiceBookContext _context;
+        private readonly IUserRepository _userRepository;
         private readonly IConfiguration _configuration;
 
-        public AuthService(VehicleServiceBookContext context, IConfiguration configuration)
+        public AuthService(IUserRepository userRepository, IConfiguration configuration)
         {
-            _context = context;
+            _userRepository = userRepository;
             _configuration = configuration;
         }
 
         public async Task<string> AuthenticateAsync(string email, string password)
         {
-            var user = await _context.Registrations.FirstOrDefaultAsync(u => u.Email == email);
+            //var user = await _context.Registrations.FirstOrDefaultAsync(u => u.Email == email);
+
+            //var user = await _userRepository.GetUserByEmailPasswordAsync(email, password);
+
+            var user = await _userRepository.GetUserByEmailAsync(email);
+
             if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
                 return null;
 
             var claims = new[]
             {
+                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Role, user.Role)
             };

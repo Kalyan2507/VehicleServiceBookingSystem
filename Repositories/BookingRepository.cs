@@ -15,6 +15,10 @@ namespace VehicleServiceBook.Repositories
         public async Task<IEnumerable<Booking>> GetAllByUserIdAsync(int userId)
         {
             return await _context.Bookings
+                .Include(b => b.Vehicle)
+                .Include(b => b.ServiceType)
+                .Include(b => b.Mechanic)
+                .Include(b => b.ServiceCenter)
                 .Where(b => b.UserId == userId)
                 .ToListAsync();
         }

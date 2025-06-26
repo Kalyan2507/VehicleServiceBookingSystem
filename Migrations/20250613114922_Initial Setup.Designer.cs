@@ -12,7 +12,7 @@ using VehicleServiceBook.Models.Domains;
 namespace VehicleServiceBook.Migrations
 {
     [DbContext(typeof(VehicleServiceBookContext))]
-    [Migration("20250607131714_Initial Setup")]
+    [Migration("20250613114922_Initial Setup")]
     partial class InitialSetup
     {
         /// <inheritdoc />
@@ -33,16 +33,16 @@ namespace VehicleServiceBook.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Bookingid"));
 
-                    b.Property<DateTime?>("Date")
+                    b.Property<DateTime>("Date")
                         .HasColumnType("datetime");
 
-                    b.Property<int>("RegistrationUserId")
+                    b.Property<int?>("MechanicId")
                         .HasColumnType("int");
 
                     b.Property<int?>("ServiceCenterId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ServiceTypeId")
+                    b.Property<int>("ServiceTypeId")
                         .HasColumnType("int");
 
                     b.Property<string>("Status")
@@ -52,6 +52,7 @@ namespace VehicleServiceBook.Migrations
                         .HasDefaultValue("Pending");
 
                     b.Property<string>("TimeSlot")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
@@ -62,9 +63,11 @@ namespace VehicleServiceBook.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Bookingid")
-                        .HasName("PK__Booking__73961EC5F67A7B8A");
+                        .HasName("PK__Booking__73961EC5AADDA612");
 
-                    b.HasIndex("RegistrationUserId");
+                    b.HasIndex("MechanicId");
+
+                    b.HasIndex("ServiceCenterId");
 
                     b.HasIndex("ServiceTypeId");
 
@@ -86,6 +89,11 @@ namespace VehicleServiceBook.Migrations
                     b.Property<int?>("BookingId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime>("Date")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("getdate()");
+
                     b.Property<string>("PaymentStatus")
                         .HasMaxLength(40)
                         .IsUnicode(false)
@@ -94,17 +102,17 @@ namespace VehicleServiceBook.Migrations
                     b.Property<int?>("ServiceTypeId")
                         .HasColumnType("int");
 
-                    b.Property<double?>("TotalAmount")
-                        .HasColumnType("float");
+                    b.Property<decimal?>("TotalAmount")
+                        .HasColumnType("decimal(10, 2)");
 
                     b.HasKey("InvoiceId")
-                        .HasName("PK__Invoice__D796AAB53F7BFBC9");
+                        .HasName("PK__Invoice__D796AAB53CBEA5AA");
 
-                    b.HasIndex("ServiceTypeId");
-
-                    b.HasIndex(new[] { "BookingId" }, "UQ__Invoice__73951AEC734F6989")
+                    b.HasIndex("BookingId")
                         .IsUnique()
                         .HasFilter("[BookingId] IS NOT NULL");
+
+                    b.HasIndex("ServiceTypeId");
 
                     b.ToTable("Invoice", (string)null);
                 });
@@ -129,7 +137,7 @@ namespace VehicleServiceBook.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Mechanicid")
-                        .HasName("PK__Mechanic__6B0509C952C35A70");
+                        .HasName("PK__Mechanic__6B0509C9F62A2D41");
 
                     b.HasIndex("ServiceCenterId");
 
@@ -161,21 +169,17 @@ namespace VehicleServiceBook.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Phone")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("Role")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
                     b.HasKey("UserId")
-                        .HasName("PK__Registra__1788CC4CFFFF47B6");
+                        .HasName("PK__Registra__1788CC4C88AA8157");
 
-                    b.HasIndex(new[] { "Phone" }, "UQ__Registra__5C7E359EB11CB881")
-                        .IsUnique()
-                        .HasFilter("[Phone] IS NOT NULL");
-
-                    b.HasIndex(new[] { "Email" }, "UQ__Registra__A9D105349468CAF8")
+                    b.HasIndex(new[] { "Email" }, "UQ__Registra__A9D10534FDAE5997")
                         .IsUnique()
                         .HasFilter("[Email] IS NOT NULL");
 
@@ -191,8 +195,8 @@ namespace VehicleServiceBook.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ServiceCenterId"));
 
                     b.Property<string>("ServiceCenterContact")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("ServiceCenterLocation")
                         .HasMaxLength(200)
@@ -207,13 +211,9 @@ namespace VehicleServiceBook.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("ServiceCenterId")
-                        .HasName("PK__ServiceC__71B62BE37DB8DD79");
+                        .HasName("PK__ServiceC__71B62BE31C4F7EA0");
 
                     b.HasIndex("UserId");
-
-                    b.HasIndex(new[] { "ServiceCenterContact" }, "UQ__ServiceC__F2124AAD32FA906C")
-                        .IsUnique()
-                        .HasFilter("[ServiceCenterContact] IS NOT NULL");
 
                     b.ToTable("ServiceCenter", (string)null);
                 });
@@ -234,7 +234,7 @@ namespace VehicleServiceBook.Migrations
                         .HasColumnType("decimal(10, 2)");
 
                     b.HasKey("ServiceTypeId")
-                        .HasName("PK__ServiceT__8ADFAA6C42E00C64");
+                        .HasName("PK__ServiceT__8ADFAA6C2546C593");
 
                     b.ToTable("ServiceType", (string)null);
                 });
@@ -267,7 +267,7 @@ namespace VehicleServiceBook.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("VehicleId")
-                        .HasName("PK__Vehicle__476B5492B47F68A7");
+                        .HasName("PK__Vehicle__476B5492C88E34FF");
 
                     b.HasIndex("UserId");
 
@@ -276,25 +276,34 @@ namespace VehicleServiceBook.Migrations
 
             modelBuilder.Entity("VehicleServiceBook.Models.Domains.Booking", b =>
                 {
-                    b.HasOne("VehicleServiceBook.Models.Domains.Registration", "Registration")
-                        .WithMany("Bookings")
-                        .HasForeignKey("RegistrationUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("VehicleServiceBook.Models.Domains.ServiceType", "ServiceType")
+                    b.HasOne("VehicleServiceBook.Models.Domains.Mechanic", "Mechanic")
                         .WithMany()
-                        .HasForeignKey("ServiceTypeId");
+                        .HasForeignKey("MechanicId")
+                        .HasConstraintName("Fk_Booking_Mechanic");
 
                     b.HasOne("VehicleServiceBook.Models.Domains.ServiceCenter", "ServiceCenter")
                         .WithMany("Bookings")
+                        .HasForeignKey("ServiceCenterId")
+                        .HasConstraintName("FK_Booking_ServiceCenter");
+
+                    b.HasOne("VehicleServiceBook.Models.Domains.ServiceType", "ServiceType")
+                        .WithMany("Bookings")
+                        .HasForeignKey("ServiceTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_Booking_ServiceType");
+
+                    b.HasOne("VehicleServiceBook.Models.Domains.Registration", "Registration")
+                        .WithMany("Bookings")
                         .HasForeignKey("UserId")
-                        .HasConstraintName("FK__Booking__UserId__59063A47");
+                        .HasConstraintName("FK_Booking_Registration");
 
                     b.HasOne("VehicleServiceBook.Models.Domains.Vehicle", "Vehicle")
                         .WithMany("Bookings")
                         .HasForeignKey("VehicleId")
-                        .HasConstraintName("FK__Booking__Vehicle__59FA5E80");
+                        .HasConstraintName("FK_Booking_Vehicle1");
+
+                    b.Navigation("Mechanic");
 
                     b.Navigation("Registration");
 
@@ -310,12 +319,12 @@ namespace VehicleServiceBook.Migrations
                     b.HasOne("VehicleServiceBook.Models.Domains.Booking", "Booking")
                         .WithOne("Invoice")
                         .HasForeignKey("VehicleServiceBook.Models.Domains.Invoice", "BookingId")
-                        .HasConstraintName("FK__Invoice__Booking__6FE99F9F");
+                        .HasConstraintName("FK_Invoice_Booking");
 
                     b.HasOne("VehicleServiceBook.Models.Domains.ServiceType", "ServiceType")
                         .WithMany("Invoices")
                         .HasForeignKey("ServiceTypeId")
-                        .HasConstraintName("FK__Invoice__Service__70DDC3D8");
+                        .HasConstraintName("FK_Invoice_ServiceType");
 
                     b.Navigation("Booking");
 
@@ -327,7 +336,7 @@ namespace VehicleServiceBook.Migrations
                     b.HasOne("VehicleServiceBook.Models.Domains.ServiceCenter", "ServiceCenter")
                         .WithMany("Mechanics")
                         .HasForeignKey("ServiceCenterId")
-                        .HasConstraintName("FK__Mechanic__Servic__5165187F");
+                        .HasConstraintName("FK_Mechanic_ServiceCenter");
 
                     b.Navigation("ServiceCenter");
                 });
@@ -337,7 +346,7 @@ namespace VehicleServiceBook.Migrations
                     b.HasOne("VehicleServiceBook.Models.Domains.Registration", "User")
                         .WithMany("ServiceCenters")
                         .HasForeignKey("UserId")
-                        .HasConstraintName("FK__ServiceCe__UserI__4E88ABD4");
+                        .HasConstraintName("FK__ServiceCe__UserI__3A81B327");
 
                     b.Navigation("User");
                 });
@@ -347,14 +356,15 @@ namespace VehicleServiceBook.Migrations
                     b.HasOne("VehicleServiceBook.Models.Domains.Registration", "User")
                         .WithMany("Vehicles")
                         .HasForeignKey("UserId")
-                        .HasConstraintName("FK__Vehicle__UserId__5629CD9C");
+                        .HasConstraintName("FK_Vehicle_Registration");
 
                     b.Navigation("User");
                 });
 
             modelBuilder.Entity("VehicleServiceBook.Models.Domains.Booking", b =>
                 {
-                    b.Navigation("Invoice");
+                    b.Navigation("Invoice")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("VehicleServiceBook.Models.Domains.Registration", b =>
@@ -375,6 +385,8 @@ namespace VehicleServiceBook.Migrations
 
             modelBuilder.Entity("VehicleServiceBook.Models.Domains.ServiceType", b =>
                 {
+                    b.Navigation("Bookings");
+
                     b.Navigation("Invoices");
                 });
 

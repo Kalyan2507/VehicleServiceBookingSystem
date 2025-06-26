@@ -16,7 +16,5 @@ namespace VehicleServiceBook.Repositories
         Task DeleteAsync(int id);
         Task<bool> SaveChangesAsync();
 
-
-
     }
 }
