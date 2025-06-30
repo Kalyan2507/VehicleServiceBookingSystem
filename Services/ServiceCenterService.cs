@@ -10,15 +10,17 @@ namespace VehicleServiceBook.Services
         private readonly IServiceCenterRepository _serviceCenterRepository;
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
+        private readonly IInvoiceRepository _invoiceRepo;
 
         public ServiceCenterService(
             IServiceCenterRepository serviceCenterRepository,
             IUserRepository userRepository,
-            IMapper mapper)
+            IMapper mapper, IInvoiceRepository invoiceRepo)
         {
             _serviceCenterRepository = serviceCenterRepository;
             _userRepository = userRepository;
             _mapper = mapper;
+            _invoiceRepo = invoiceRepo;
         }
 
         public async Task<ServiceCenterDto> GetByUserIdAsync(int userId)
@@ -79,17 +81,75 @@ namespace VehicleServiceBook.Services
         }
 
         public async Task<bool> UpdateBookingStatusAsync(int userId, int bookingId, string status)
+
         {
+
+            // Get the logged-in service center
+
             var serviceCenter = await _serviceCenterRepository.GetByUserIdAsync(userId);
-            if (serviceCenter == null) return false;
+
+            if (serviceCenter == null)
+
+                return false;
+
+            // Get the booking to update
 
             var booking = await _serviceCenterRepository.GetBookingByIdAsync(bookingId);
-            if (booking == null || booking.ServiceCenterId != serviceCenter.ServiceCenterId) return false;
+
+            if (booking == null || booking.ServiceCenterId != serviceCenter.ServiceCenterId)
+
+                return false;
+
+            // Update status
 
             booking.Status = status;
 
+            // ✅ Auto-generate invoice only when status is "Completed"
+
+            if (status == "Completed")
+
+            {
+
+                var existing = await _invoiceRepo.GetExistingInvoiceByBookingIdAsync(bookingId);
+
+                if (existing == null)
+
+                {
+
+                    var serviceType = await _invoiceRepo.GetServiceTypeByBookingIdAsync(booking.ServiceTypeId);
+
+                    if (serviceType != null)
+
+                    {
+
+                        var invoice = new Invoice
+
+                        {
+
+                            BookingId = booking.Bookingid,
+
+                            ServiceTypeId = booking.ServiceTypeId,
+
+                            TotalAmount = (double?)serviceType.Price,
+
+                            PaymentStatus = "Pending",
+
+                            Date = DateTime.Now
+
+                        };
+
+                        await _invoiceRepo.AddAsync(invoice);
+
+                    }
+
+                }
+
+            }
+
             return await _serviceCenterRepository.SaveChangesAsync();
+
         }
+
 
         public async Task<bool> AssignMechanicAsync(int userId, int bookingId, int mechanicId)
         {

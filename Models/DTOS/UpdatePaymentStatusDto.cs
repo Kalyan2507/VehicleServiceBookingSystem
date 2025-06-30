@@ -2,6 +2,6 @@
 {
     public class UpdatePaymentStatusDto
     {
-        public string PaymentStatus { get; set; } = null!;
+        public string PaymentStatus { get; set; } = "Pending";
     }
 }

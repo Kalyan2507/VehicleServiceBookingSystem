@@ -1,21 +1,23 @@
-﻿using AutoMapper;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using VehicleServiceBook.Models.Domains;
 using VehicleServiceBook.Models.DTOS;
-using VehicleServiceBook.Repositories;
-using Microsoft.EntityFrameworkCore;
 using VehicleServiceBook.Services;
 
 namespace VehicleServiceBook.Controllers
+
 {
+
     [Authorize]
+
     [Route("api/[controller]")]
+
     [ApiController]
+
     public class InvoiceController : ControllerBase
+
     {
+
         private readonly IInvoiceService _service;
 
         public InvoiceController(IInvoiceService service)
@@ -56,7 +58,7 @@ namespace VehicleServiceBook.Controllers
 
         [HttpPost]
 
-        [Authorize(Roles = "User")]
+        [Authorize(Roles = "ServiceCenter")]
 
         public async Task<IActionResult> Create(CreateInvoiceDto dto)
 
@@ -86,5 +88,37 @@ namespace VehicleServiceBook.Controllers
 
         }
 
+        [HttpGet("center")]
+
+        [Authorize(Roles = "ServiceCenter")]
+
+        public async Task<IActionResult> GetForServiceCenter()
+
+        {
+
+            var result = await _service.GetInvoicesForServiceCenterAsync(GetEmail());
+
+            return Ok(result);
+
+        }
+
+        [HttpPut("{id}/status")]
+
+        [Authorize(Roles = "User")]
+
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdatePaymentStatusDto dto)
+
+        {
+
+            var email = GetEmail();
+
+            var result = await _service.UpdatePaymentStatusAsync(id, dto.PaymentStatus, email);
+
+            return result ? Ok("Payment status updated") : NotFound("Invoice not found or not your invoice");
+
+        }
+
     }
+
 }
+

@@ -47,6 +47,22 @@ namespace VehicleServiceBook.Repositories
                 .FirstOrDefaultAsync(b => b.Bookingid == bookingId && b.UserId == userId);
         }
 
+        public async Task<IEnumerable<Invoice>> GetInvoicesByServiceCenterIdAsync(int serviceCenterId)
+        {
+            return await _context.Invoices
+                .Include(i => i.Booking)
+                .ThenInclude(b => b.ServiceType)
+                .Where(i => i.Booking.ServiceCenterId == serviceCenterId)
+                .ToListAsync();
+        }
+
+        public async Task<Invoice?> GetInvoiceByIdAsync(int id)
+        {
+            return await _context.Invoices
+                .Include(i => i.Booking)
+                .FirstOrDefaultAsync(i => i.InvoiceId == id);
+        }
+
         public async Task AddAsync(Invoice invoice)
         {
             await _context.Invoices.AddAsync(invoice);

@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using VehicleServiceBook.Models.Domains;
 using Microsoft.OpenApi.Models;
 using VehicleServiceBook.Middleware;
+using Microsoft.AspNetCore.Authorization;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -80,6 +81,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddAuthorization();
+builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, CustomAuthorizationHandler>();
 
 //Add Cors
 builder.Services.AddCors(options =>

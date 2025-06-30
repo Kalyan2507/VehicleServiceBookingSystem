@@ -32,8 +32,10 @@ namespace VehicleServiceBook.Controllers
             if (!success)
                 return BadRequest("User Already Exists, Please Login");
 
-            return Ok("Registration successful");
+            // ✅ Return JSON instead of plain string
+            return Ok(new { success = true, message = "Registration successful" });
         }
+
 
         [Authorize]
         [HttpGet("Profile")]
